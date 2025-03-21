@@ -448,5 +448,63 @@ export declare const components: {
         >;
       };
     };
+    vector: {
+      vector: {
+        createIndex: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            dimensions:
+              | 128
+              | 256
+              | 512
+              | 768
+              | 1024
+              | 1536
+              | 2048
+              | 3072
+              | 4096;
+            indexName: string;
+          },
+          any
+        >;
+        deleteIndex: FunctionReference<
+          "action",
+          "internal",
+          { indexName: string },
+          any
+        >;
+        describeIndex: FunctionReference<
+          "query",
+          "internal",
+          { indexName: string },
+          any
+        >;
+        listIndexes: FunctionReference<"query", "internal", {}, any>;
+        search: FunctionReference<
+          "action",
+          "internal",
+          {
+            filter?: Record<string, any>;
+            includeVector?: boolean;
+            indexName: string;
+            queryVector: Array<number>;
+            topK: number;
+          },
+          any
+        >;
+        upsert: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            ids?: Array<string>;
+            indexName: string;
+            metadata?: Array<Record<string, any>>;
+            vectors: Array<Array<number>>;
+          },
+          Array<string>
+        >;
+      };
+    };
   };
 };

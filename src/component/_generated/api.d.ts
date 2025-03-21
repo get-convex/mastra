@@ -15,6 +15,7 @@ import type * as storage_messages from "../storage/messages.js";
 import type * as storage_storage from "../storage/storage.js";
 import type * as storage_tables from "../storage/tables.js";
 import type * as vector_tables from "../vector/tables.js";
+import type * as vector_vector from "../vector/vector.js";
 
 import type {
   ApiFromModules,
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   "storage/storage": typeof storage_storage;
   "storage/tables": typeof storage_tables;
   "vector/tables": typeof vector_tables;
+  "vector/vector": typeof vector_vector;
 }>;
 export type Mounts = {
   machine: {
@@ -438,6 +440,55 @@ export type Mounts = {
         "public",
         { keys: any; tableName: string },
         any | null
+      >;
+    };
+  };
+  vector: {
+    vector: {
+      createIndex: FunctionReference<
+        "mutation",
+        "public",
+        {
+          dimensions: 128 | 256 | 512 | 768 | 1024 | 1536 | 2048 | 3072 | 4096;
+          indexName: string;
+        },
+        any
+      >;
+      deleteIndex: FunctionReference<
+        "action",
+        "public",
+        { indexName: string },
+        any
+      >;
+      describeIndex: FunctionReference<
+        "query",
+        "public",
+        { indexName: string },
+        any
+      >;
+      listIndexes: FunctionReference<"query", "public", {}, any>;
+      search: FunctionReference<
+        "action",
+        "public",
+        {
+          filter?: Record<string, any>;
+          includeVector?: boolean;
+          indexName: string;
+          queryVector: Array<number>;
+          topK: number;
+        },
+        any
+      >;
+      upsert: FunctionReference<
+        "mutation",
+        "public",
+        {
+          ids?: Array<string>;
+          indexName: string;
+          metadata?: Array<Record<string, any>>;
+          vectors: Array<Array<number>>;
+        },
+        Array<string>
       >;
     };
   };

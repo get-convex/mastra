@@ -80,7 +80,8 @@
   },
   "peerDependencies": {
     "ai": "^4.2.0",
-    "convex": "~1.16.5 || ~1.17.0"
+    "convex": ">=1.17.0 <1.25.0",
+    "convex-helpers": "^0.1.74"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
