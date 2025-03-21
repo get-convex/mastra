@@ -8,8 +8,6 @@
  * @module
  */
 
-import type * as example from "../example.js";
-
 import type {
   ApiFromModules,
   FilterApi,
@@ -23,9 +21,7 @@ import type {
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-declare const fullApi: ApiFromModules<{
-  example: typeof example;
-}>;
+declare const fullApi: ApiFromModules<{}>;
 declare const fullApiWithMounts: typeof fullApi;
 
 export declare const api: FilterApi<
@@ -37,25 +33,4 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {
-  mastra: {
-    lib: {
-      add: FunctionReference<
-        "mutation",
-        "internal",
-        { count: number; name: string; shards?: number },
-        null
-      >;
-      count: FunctionReference<"query", "internal", { name: string }, number>;
-    };
-    state_machine: {
-      create: FunctionReference<"mutation", "internal", { name: string }, any>;
-      run: FunctionReference<
-        "mutation",
-        "internal",
-        { input: {}; machineId: string },
-        any
-      >;
-    };
-  };
-};
+export declare const components: {};

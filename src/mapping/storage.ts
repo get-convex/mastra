@@ -11,7 +11,7 @@ import type {
   UserContent,
 } from "ai";
 import { v } from "convex/values";
-import { SerializeUrlsAndUint8Arrays, vContent } from "./ai/types";
+import { SerializeUrlsAndUint8Arrays, vContent } from "../ai/types";
 
 const TABLE_WORKFLOW_SNAPSHOT = "mastra_workflow_snapshot";
 const TABLE_EVALS = "mastra_evals";

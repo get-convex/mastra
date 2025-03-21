@@ -9,13 +9,14 @@
  */
 
 import type * as lib from "../lib.js";
-import type * as state_machine from "../state_machine.js";
-import type * as storage_index from "../storage/index.js";
+import type * as state_machine from "../machine.js";
+import type * as storage_index from "../storage/storage.js";
 import type * as storage_messages from "../storage/messages.js";
 import type * as storage_tables from "../storage/tables.js";
 
 import type {
   ApiFromModules,
+  componentsGeneric,
   FilterApi,
   FunctionReference,
 } from "convex/server";
@@ -68,4 +69,5 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export type Components = typeof ReturnType<typeof componentsGeneric>;
+export declare const components: Components;

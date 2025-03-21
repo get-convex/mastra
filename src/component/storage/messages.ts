@@ -6,7 +6,7 @@ import {
   type SerializedThread,
   vSerializedMessage,
   vSerializedThread,
-} from "../../mapping.js";
+} from "../../mapping/storage.js";
 
 function threadToSerializedMastra(thread: Doc<"threads">): SerializedThread {
   const { id, title, metadata, resourceId, createdAt, updatedAt } = thread;
@@ -155,7 +155,7 @@ const vSelectBy = v.object({
 function messageToSerializedMastra(
   message: Doc<"messages">
 ): SerializedMessage {
-  const { threadOrder, _id, _creationTime, ...serialized } = message;
+  const { threadOrder: _, _id, _creationTime, ...serialized } = message;
   return serialized;
 }
 

@@ -6,9 +6,9 @@ import type {
   SerializedThread,
   vSerializedMessage,
   vSerializedThread,
-} from "./mapping";
+} from "./storage";
 import { Infer } from "convex/values";
-import { Content } from "./ai/types";
+import { Content } from "../ai/types";
 
 // type assertsions
 const _tableNames: ORIGINAL_TABLE_NAMES = "" as NEW_TABLE_NAMES;
