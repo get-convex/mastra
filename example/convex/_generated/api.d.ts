@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as _hax from "../_hax.js";
 import type * as example from "../example.js";
 
 import type {
@@ -24,6 +25,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  _hax: typeof _hax;
   example: typeof example;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
@@ -45,7 +47,7 @@ export declare const components: {
         "internal",
         {
           fnName: string;
-          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+          logLevel: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
           name: string;
         },
         any
@@ -55,7 +57,7 @@ export declare const components: {
         "internal",
         {
           input: any;
-          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+          logLevel: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
           machineId: string;
         },
         any

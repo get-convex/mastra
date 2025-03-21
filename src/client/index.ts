@@ -20,7 +20,7 @@ export class WorkflowRunner {
   }
   async create(
     ctx: GenericActionCtx<GenericDataModel>,
-    fn: FunctionReference<"action">
+    fn: FunctionReference<"action", "internal">
   ) {
     const console = createLogger(this.options?.logLevel ?? "DEBUG");
     console.debug("Creating machine from client", getFunctionName(fn));
@@ -29,6 +29,7 @@ export class WorkflowRunner {
       op: { kind: "create", fnHandle, fnName: getFunctionName(fn) },
     });
     return {
+      runId,
       start: this.start.bind(this, ctx, runId),
       resume: this.resume.bind(this, ctx, runId),
     };

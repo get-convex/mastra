@@ -45,7 +45,7 @@ export type Mounts = {
       "public",
       {
         fnName: string;
-        logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+        logLevel: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
         name: string;
       },
       any
@@ -55,7 +55,7 @@ export type Mounts = {
       "public",
       {
         input: any;
-        logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+        logLevel: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
         machineId: string;
       },
       any

@@ -109,9 +109,10 @@ export const load = query({
     keys: v.any(),
   },
   handler: async (ctx, args) => {
-    throw new Error(
-      `Not implemented: load for ${args.tableName}: ${JSON.stringify(args.keys)}`
-    );
+    if (args)
+      throw new Error(
+        `Not implemented: load for ${args.tableName}: ${JSON.stringify(args.keys)}`
+      );
   },
   returns: v.union(v.any(), v.null()),
 });

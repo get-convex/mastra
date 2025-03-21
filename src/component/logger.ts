@@ -1,8 +1,12 @@
 import { Infer, v } from "convex/values";
 
+export const DEFAULT_LOG_LEVEL: LogLevel = "INFO";
+
 export const logLevel = v.union(
   v.literal("DEBUG"),
+  v.literal("TRACE"),
   v.literal("INFO"),
+  v.literal("REPORT"),
   v.literal("WARN"),
   v.literal("ERROR")
 );
@@ -14,63 +18,76 @@ export type Logger = {
   info: (...args: unknown[]) => void;
   warn: (...args: unknown[]) => void;
   error: (...args: unknown[]) => void;
+  time: (label: string) => void;
+  timeEnd: (label: string) => void;
   event: (event: string, payload: Record<string, any>) => void;
 };
+const logLevelOrder = logLevel.members.map((l) => l.value);
+const logLevelByName = logLevelOrder.reduce(
+  (acc, l, i) => {
+    acc[l] = i;
+    return acc;
+  },
+  {} as Record<LogLevel, number>
+);
+export function shouldLog(config: LogLevel, level: LogLevel) {
+  return logLevelByName[config] <= logLevelByName[level];
+}
 
-export function createLogger(level: LogLevel): Logger {
-  const levelIndex = ["DEBUG", "INFO", "WARN", "ERROR"].indexOf(level);
-  if (levelIndex === -1) {
+const DEBUG = logLevelByName["DEBUG"];
+const TRACE = logLevelByName["TRACE"];
+const INFO = logLevelByName["INFO"];
+const REPORT = logLevelByName["REPORT"];
+const WARN = logLevelByName["WARN"];
+const ERROR = logLevelByName["ERROR"];
+
+export function createLogger(level?: LogLevel): Logger {
+  const levelIndex = logLevelByName[level ?? DEFAULT_LOG_LEVEL];
+  if (levelIndex === undefined) {
     throw new Error(`Invalid log level: ${level}`);
   }
   return {
     debug: (...args: unknown[]) => {
-      if (levelIndex <= 0) {
+      if (levelIndex <= DEBUG) {
         console.debug(...args);
       }
     },
     info: (...args: unknown[]) => {
-      if (levelIndex <= 1) {
+      if (levelIndex <= INFO) {
         console.info(...args);
       }
     },
     warn: (...args: unknown[]) => {
-      if (levelIndex <= 2) {
+      if (levelIndex <= WARN) {
         console.warn(...args);
       }
     },
     error: (...args: unknown[]) => {
-      if (levelIndex <= 3) {
+      if (levelIndex <= ERROR) {
         console.error(...args);
       }
     },
-    event: (event: string, payload: Record<string, any>) => {
-      if (levelIndex <= 1) {
-        const fullPayload = {
-          system: "idempotent-workpool-component",
-          event,
-          payload,
-        };
-        const json = JSON.stringify(fullPayload);
-        console.info(json);
+    time: (label: string) => {
+      if (levelIndex <= TRACE) {
+        console.time(label);
+      }
+    },
+    timeEnd: (label: string) => {
+      if (levelIndex <= TRACE) {
+        console.timeEnd(label);
+      }
+    },
+    event: (event: string, payload: Record<string, unknown>) => {
+      const fullPayload = {
+        component: "workpool",
+        event,
+        ...payload,
+      };
+      if (levelIndex === REPORT && event === "report") {
+        console.info(JSON.stringify(fullPayload));
+      } else if (levelIndex <= INFO) {
+        console.info(JSON.stringify(fullPayload));
       }
     },
   };
-}
-
-export function getDefaultLogLevel(): LogLevel {
-  let DEFAULT_LOG_LEVEL: LogLevel = "INFO";
-  if (process.env.IDEMPOTENT_WORKPOOL_LOG_LEVEL) {
-    if (
-      !["DEBUG", "INFO", "WARN", "ERROR"].includes(
-        process.env.IDEMPOTENT_WORKPOOL_LOG_LEVEL
-      )
-    ) {
-      console.warn(
-        `Invalid log level (${process.env.IDEMPOTENT_WORKPOOL_LOG_LEVEL}), defaulting to "INFO"`
-      );
-    } else {
-      DEFAULT_LOG_LEVEL = process.env.IDEMPOTENT_WORKPOOL_LOG_LEVEL as LogLevel;
-    }
-  }
-  return DEFAULT_LOG_LEVEL;
 }
