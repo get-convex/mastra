@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as debug from "../debug.js";
+import type * as logger from "../logger.js";
 import type * as machine from "../machine.js";
 import type * as storage_messages from "../storage/messages.js";
 import type * as storage_storage from "../storage/storage.js";
@@ -28,6 +30,8 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  debug: typeof debug;
+  logger: typeof logger;
   machine: typeof machine;
   "storage/messages": typeof storage_messages;
   "storage/storage": typeof storage_storage;
@@ -36,13 +40,27 @@ declare const fullApi: ApiFromModules<{
 }>;
 export type Mounts = {
   machine: {
-    create: FunctionReference<"mutation", "public", { name: string }, any>;
+    create: FunctionReference<
+      "mutation",
+      "public",
+      {
+        fnName: string;
+        logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+        name: string;
+      },
+      any
+    >;
     run: FunctionReference<
       "mutation",
       "public",
-      { input: {}; machineId: string },
+      {
+        input: any;
+        logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+        machineId: string;
+      },
       any
     >;
+    status: FunctionReference<"query", "public", { machineId: string }, any>;
   };
   storage: {
     messages: {

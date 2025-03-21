@@ -1,3 +1,4 @@
+"use node";
 import type { MessageType, StorageThreadType } from "@mastra/core";
 import type {
   EvalRow,

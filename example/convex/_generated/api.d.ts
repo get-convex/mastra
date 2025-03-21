@@ -40,11 +40,30 @@ export declare const internal: FilterApi<
 export declare const components: {
   mastra: {
     machine: {
-      create: FunctionReference<"mutation", "internal", { name: string }, any>;
+      create: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          fnName: string;
+          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+          name: string;
+        },
+        any
+      >;
       run: FunctionReference<
         "mutation",
         "internal",
-        { input: {}; machineId: string },
+        {
+          input: any;
+          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+          machineId: string;
+        },
+        any
+      >;
+      status: FunctionReference<
+        "query",
+        "internal",
+        { machineId: string },
         any
       >;
     };
