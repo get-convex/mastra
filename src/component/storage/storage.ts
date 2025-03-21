@@ -3,9 +3,10 @@ import tables from "./tables.js";
 import { internal } from "../_generated/api.js";
 import { TableNames } from "./tables.js";
 import {
-  internalAction,
+  action,
   internalMutation,
-  internalQuery,
+  mutation,
+  query,
 } from "../_generated/server.js";
 
 interface StorageColumn {
@@ -73,7 +74,7 @@ export function validateTableSchema(
   }
 }
 
-export const insert = internalMutation({
+export const insert = mutation({
   args: {
     tableName: v.string(),
     document: v.any(),
@@ -86,7 +87,7 @@ export const insert = internalMutation({
   returns: v.null(),
 });
 
-export const batchInsert = internalMutation({
+export const batchInsert = mutation({
   args: {
     tableName: v.string(),
     records: v.array(v.any()),
@@ -102,7 +103,7 @@ export const batchInsert = internalMutation({
   returns: v.null(),
 });
 
-export const load = internalQuery({
+export const load = query({
   args: {
     tableName: v.string(),
     keys: v.any(),
@@ -115,14 +116,14 @@ export const load = internalQuery({
   returns: v.union(v.any(), v.null()),
 });
 
-export const clearTable = internalAction({
+export const clearTable = action({
   args: { tableName: v.string() },
   handler: async (ctx, args) => {
     let cursor: string | null = null;
     while (true) {
       cursor = await ctx.scheduler.runAfter(
         0,
-        internal.storage.index.clearPage,
+        internal.storage.storage.clearPage,
         {
           tableName: args.tableName,
           cursor,
@@ -157,7 +158,7 @@ export const clearPage = internalMutation({
   returns: v.union(v.string(), v.null()),
 });
 
-export const getEvalsByAgentName = internalQuery({
+export const getEvalsByAgentName = query({
   args: {
     agentName: v.string(),
     type: v.optional(v.union(v.literal("test"), v.literal("live"))),
@@ -184,7 +185,7 @@ export const getEvalsByAgentName = internalQuery({
 });
 
 const MAX_TRACES_SCANNED = 4096;
-export const getTracesPage = internalQuery({
+export const getTracesPage = query({
   args: {
     name: v.optional(v.string()),
     scope: v.optional(v.string()),

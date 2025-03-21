@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { Doc } from "../_generated/dataModel.js";
-import { internalMutation, internalQuery } from "../_generated/server.js";
+import { mutation, query } from "../_generated/server.js";
 import {
   type SerializedMessage,
   type SerializedThread,
@@ -13,7 +13,7 @@ function threadToSerializedMastra(thread: Doc<"threads">): SerializedThread {
   return { id, title, metadata, resourceId, createdAt, updatedAt };
 }
 
-export const getThreadById = internalQuery({
+export const getThreadById = query({
   args: { threadId: v.string() },
   handler: async (ctx, args) => {
     const thread = await ctx.db
@@ -28,7 +28,7 @@ export const getThreadById = internalQuery({
   returns: v.union(vSerializedThread, v.null()),
 });
 
-export const getThreadsByResourceId = internalQuery({
+export const getThreadsByResourceId = query({
   args: {
     resourceId: v.string(),
     cursor: v.optional(v.union(v.string(), v.null())),
@@ -61,7 +61,7 @@ export const getThreadsByResourceId = internalQuery({
   }),
 });
 
-export const saveThread = internalMutation({
+export const saveThread = mutation({
   args: { thread: vSerializedThread },
   handler: async (ctx, args) => {
     await ctx.db.insert("threads", args.thread);
@@ -69,7 +69,7 @@ export const saveThread = internalMutation({
   returns: v.null(),
 });
 
-export const updateThread = internalMutation({
+export const updateThread = mutation({
   args: {
     threadId: v.string(),
     title: v.optional(v.string()),
@@ -94,7 +94,7 @@ export const updateThread = internalMutation({
   returns: vSerializedThread,
 });
 
-export const deleteThread = internalMutation({
+export const deleteThread = mutation({
   args: { threadId: v.string() },
   handler: async (ctx, args) => {
     const thread = await ctx.db
@@ -161,7 +161,7 @@ function messageToSerializedMastra(
 
 const DEFAULT_MESSAGES_LIMIT = 40; // What pg & upstash do too.
 
-export const getMessagesPage = internalQuery({
+export const getMessagesPage = query({
   args: {
     threadId: v.string(),
     selectBy: v.optional(vSelectBy),
@@ -241,7 +241,7 @@ export const getMessagesPage = internalQuery({
   returns: v.array(vSerializedMessage),
 });
 
-export const saveMessages = internalMutation({
+export const saveMessages = mutation({
   args: { messages: v.array(vSerializedMessage) },
   handler: async (ctx, args) => {
     const messagesByThreadId: Record<string, SerializedMessage[]> = {};

@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as example from "../example.js";
+
 import type {
   ApiFromModules,
   FilterApi,
@@ -21,7 +23,9 @@ import type {
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-declare const fullApi: ApiFromModules<{}>;
+declare const fullApi: ApiFromModules<{
+  example: typeof example;
+}>;
 declare const fullApiWithMounts: typeof fullApi;
 
 export declare const api: FilterApi<
@@ -33,4 +37,395 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  mastra: {
+    machine: {
+      create: FunctionReference<"mutation", "internal", { name: string }, any>;
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        { input: {}; machineId: string },
+        any
+      >;
+    };
+    storage: {
+      messages: {
+        deleteThread: FunctionReference<
+          "mutation",
+          "internal",
+          { threadId: string },
+          null
+        >;
+        getMessagesPage: FunctionReference<
+          "query",
+          "internal",
+          {
+            selectBy?: {
+              include?: Array<{
+                id: string;
+                withNextMessages?: number;
+                withPreviousMessages?: number;
+              }>;
+              last?: number | false;
+              vectorSearchString?: string;
+            };
+            threadId: string;
+          },
+          Array<{
+            content:
+              | string
+              | Array<
+                  | {
+                      experimental_providerMetadata?: Record<
+                        string,
+                        Record<string, any>
+                      >;
+                      providerOptions?: Record<string, Record<string, any>>;
+                      text: string;
+                      type: "text";
+                    }
+                  | {
+                      experimental_providerMetadata?: Record<
+                        string,
+                        Record<string, any>
+                      >;
+                      image: string | ArrayBuffer;
+                      mimeType?: string;
+                      providerOptions?: Record<string, Record<string, any>>;
+                      type: "image";
+                    }
+                  | {
+                      data: string | ArrayBuffer;
+                      experimental_providerMetadata?: Record<
+                        string,
+                        Record<string, any>
+                      >;
+                      mimeType: string;
+                      providerOptions?: Record<string, Record<string, any>>;
+                      type: "file";
+                    }
+                >
+              | string
+              | Array<
+                  | {
+                      experimental_providerMetadata?: Record<
+                        string,
+                        Record<string, any>
+                      >;
+                      providerOptions?: Record<string, Record<string, any>>;
+                      text: string;
+                      type: "text";
+                    }
+                  | {
+                      data: string | ArrayBuffer;
+                      experimental_providerMetadata?: Record<
+                        string,
+                        Record<string, any>
+                      >;
+                      mimeType: string;
+                      providerOptions?: Record<string, Record<string, any>>;
+                      type: "file";
+                    }
+                  | {
+                      experimental_providerMetadata?: Record<
+                        string,
+                        Record<string, any>
+                      >;
+                      providerOptions?: Record<string, Record<string, any>>;
+                      text: string;
+                      type: "reasoning";
+                    }
+                  | {
+                      data: string;
+                      experimental_providerMetadata?: Record<
+                        string,
+                        Record<string, any>
+                      >;
+                      providerOptions?: Record<string, Record<string, any>>;
+                      type: "redacted-reasoning";
+                    }
+                  | {
+                      args: any;
+                      experimental_providerMetadata?: Record<
+                        string,
+                        Record<string, any>
+                      >;
+                      providerOptions?: Record<string, Record<string, any>>;
+                      toolCallId: string;
+                      toolName: string;
+                      type: "tool-call";
+                    }
+                >
+              | Array<{
+                  experimental_content?: Array<
+                    | { text: string; type: "text" }
+                    | { data: string; mimeType?: string; type: "image" }
+                  >;
+                  experimental_providerMetadata?: Record<
+                    string,
+                    Record<string, any>
+                  >;
+                  isError?: boolean;
+                  providerOptions?: Record<string, Record<string, any>>;
+                  result: any;
+                  toolCallId: string;
+                  toolName: string;
+                  type: "tool-result";
+                }>;
+            createdAt: number;
+            id: string;
+            role: "system" | "user" | "assistant" | "tool";
+            threadId: string;
+            type: "text" | "tool-call" | "tool-result";
+          }>
+        >;
+        getThreadById: FunctionReference<
+          "query",
+          "internal",
+          { threadId: string },
+          {
+            createdAt: number;
+            id: string;
+            metadata?: Record<string, any>;
+            resourceId: string;
+            title?: string;
+            updatedAt: number;
+          } | null
+        >;
+        getThreadsByResourceId: FunctionReference<
+          "query",
+          "internal",
+          { cursor?: string | null; resourceId: string },
+          {
+            continueCursor: string;
+            isDone: boolean;
+            threads: Array<{
+              createdAt: number;
+              id: string;
+              metadata?: Record<string, any>;
+              resourceId: string;
+              title?: string;
+              updatedAt: number;
+            }>;
+          }
+        >;
+        saveMessages: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            messages: Array<{
+              content:
+                | string
+                | Array<
+                    | {
+                        experimental_providerMetadata?: Record<
+                          string,
+                          Record<string, any>
+                        >;
+                        providerOptions?: Record<string, Record<string, any>>;
+                        text: string;
+                        type: "text";
+                      }
+                    | {
+                        experimental_providerMetadata?: Record<
+                          string,
+                          Record<string, any>
+                        >;
+                        image: string | ArrayBuffer;
+                        mimeType?: string;
+                        providerOptions?: Record<string, Record<string, any>>;
+                        type: "image";
+                      }
+                    | {
+                        data: string | ArrayBuffer;
+                        experimental_providerMetadata?: Record<
+                          string,
+                          Record<string, any>
+                        >;
+                        mimeType: string;
+                        providerOptions?: Record<string, Record<string, any>>;
+                        type: "file";
+                      }
+                  >
+                | string
+                | Array<
+                    | {
+                        experimental_providerMetadata?: Record<
+                          string,
+                          Record<string, any>
+                        >;
+                        providerOptions?: Record<string, Record<string, any>>;
+                        text: string;
+                        type: "text";
+                      }
+                    | {
+                        data: string | ArrayBuffer;
+                        experimental_providerMetadata?: Record<
+                          string,
+                          Record<string, any>
+                        >;
+                        mimeType: string;
+                        providerOptions?: Record<string, Record<string, any>>;
+                        type: "file";
+                      }
+                    | {
+                        experimental_providerMetadata?: Record<
+                          string,
+                          Record<string, any>
+                        >;
+                        providerOptions?: Record<string, Record<string, any>>;
+                        text: string;
+                        type: "reasoning";
+                      }
+                    | {
+                        data: string;
+                        experimental_providerMetadata?: Record<
+                          string,
+                          Record<string, any>
+                        >;
+                        providerOptions?: Record<string, Record<string, any>>;
+                        type: "redacted-reasoning";
+                      }
+                    | {
+                        args: any;
+                        experimental_providerMetadata?: Record<
+                          string,
+                          Record<string, any>
+                        >;
+                        providerOptions?: Record<string, Record<string, any>>;
+                        toolCallId: string;
+                        toolName: string;
+                        type: "tool-call";
+                      }
+                  >
+                | Array<{
+                    experimental_content?: Array<
+                      | { text: string; type: "text" }
+                      | { data: string; mimeType?: string; type: "image" }
+                    >;
+                    experimental_providerMetadata?: Record<
+                      string,
+                      Record<string, any>
+                    >;
+                    isError?: boolean;
+                    providerOptions?: Record<string, Record<string, any>>;
+                    result: any;
+                    toolCallId: string;
+                    toolName: string;
+                    type: "tool-result";
+                  }>;
+              createdAt: number;
+              id: string;
+              role: "system" | "user" | "assistant" | "tool";
+              threadId: string;
+              type: "text" | "tool-call" | "tool-result";
+            }>;
+          },
+          null
+        >;
+        saveThread: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            thread: {
+              createdAt: number;
+              id: string;
+              metadata?: Record<string, any>;
+              resourceId: string;
+              title?: string;
+              updatedAt: number;
+            };
+          },
+          null
+        >;
+        updateThread: FunctionReference<
+          "mutation",
+          "internal",
+          { metadata?: Record<string, any>; threadId: string; title?: string },
+          {
+            createdAt: number;
+            id: string;
+            metadata?: Record<string, any>;
+            resourceId: string;
+            title?: string;
+            updatedAt: number;
+          }
+        >;
+      };
+      storage: {
+        batchInsert: FunctionReference<
+          "mutation",
+          "internal",
+          { records: Array<any>; tableName: string },
+          null
+        >;
+        clearTable: FunctionReference<
+          "action",
+          "internal",
+          { tableName: string },
+          null
+        >;
+        getEvalsByAgentName: FunctionReference<
+          "query",
+          "internal",
+          { agentName: string; type?: "test" | "live" },
+          Array<{
+            agentName: string;
+            createdAt: number;
+            globalRunId: string;
+            input: string;
+            instructions: string;
+            metricName: string;
+            output: string;
+            result: any;
+            runId: string;
+            testInfo?: any;
+          }>
+        >;
+        getTracesPage: FunctionReference<
+          "query",
+          "internal",
+          {
+            attributes?: Record<string, string>;
+            cursor: string | null;
+            name?: string;
+            numItems: number;
+            scope?: string;
+          },
+          {
+            continuCursor: string;
+            isDone: boolean;
+            page: Array<{
+              attributes?: any;
+              createdAt: number;
+              endTime: bigint;
+              events?: any;
+              id: string;
+              kind: number | bigint;
+              links?: any;
+              name: string;
+              other?: string;
+              parentSpanId?: string | null;
+              scope: string;
+              startTime: bigint;
+              status?: any;
+              traceId: string;
+            }>;
+          }
+        >;
+        insert: FunctionReference<
+          "mutation",
+          "internal",
+          { document: any; tableName: string },
+          null
+        >;
+        load: FunctionReference<
+          "query",
+          "internal",
+          { keys: any; tableName: string },
+          any | null
+        >;
+      };
+    };
+  };
+};
