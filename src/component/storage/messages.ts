@@ -7,6 +7,8 @@ import {
   vSerializedMessage,
   vSerializedThread,
 } from "../../mapping/storage.js";
+import { paginator } from "convex-helpers/server/pagination";
+import schema from "../schema.js";
 
 function threadToSerializedMastra(thread: Doc<"threads">): SerializedThread {
   const { id, title, metadata, resourceId, createdAt, updatedAt } = thread;
@@ -41,7 +43,7 @@ export const getThreadsByResourceId = query({
     continueCursor: string;
     isDone: boolean;
   }> => {
-    const threads = await ctx.db
+    const threads = await paginator(ctx.db, schema)
       .query("threads")
       .withIndex("resourceId", (q) => q.eq("resourceId", args.resourceId))
       .paginate({

@@ -8,6 +8,8 @@ import {
   mutation,
   query,
 } from "../_generated/server.js";
+import { paginator } from "convex-helpers/server/pagination";
+import schema from "../schema.js";
 
 interface StorageColumn {
   type: "text" | "timestamp" | "uuid" | "jsonb" | "integer" | "bigint";
@@ -197,16 +199,15 @@ export const getTracesPage = query({
   handler: async (ctx, args) => {
     const { scope, name, cursor, numItems, attributes } = args;
     const overfetch = (scope ? 1 : 8) * (name ? 1 : 8);
+    const traces = paginator(ctx.db, schema).query("traces");
     const results = await (
       scope
-        ? ctx.db.query("traces").withIndex("scope", (q) => q.eq("scope", scope))
+        ? traces.withIndex("scope", (q) => q.eq("scope", scope))
         : name
-          ? ctx.db
-              .query("traces")
-              .withIndex("name", (q) =>
-                q.gte("name", name).lt("name", name + "~")
-              )
-          : ctx.db.query("traces")
+          ? traces.withIndex("name", (q) =>
+              q.gte("name", name).lt("name", name + "~")
+            )
+          : traces
     ).paginate({
       numItems: Math.min(numItems * overfetch, MAX_TRACES_SCANNED),
       cursor: cursor,
