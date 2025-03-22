@@ -10,12 +10,12 @@
 
 import type * as debug from "../debug.js";
 import type * as logger from "../logger.js";
-import type * as machine from "../machine.js";
 import type * as storage_messages from "../storage/messages.js";
 import type * as storage_storage from "../storage/storage.js";
 import type * as storage_tables from "../storage/tables.js";
 import type * as vector_tables from "../vector/tables.js";
 import type * as vector_vector from "../vector/vector.js";
+import type * as workflow_machine from "../workflow/machine.js";
 
 import type {
   ApiFromModules,
@@ -33,12 +33,12 @@ import type {
 declare const fullApi: ApiFromModules<{
   debug: typeof debug;
   logger: typeof logger;
-  machine: typeof machine;
   "storage/messages": typeof storage_messages;
   "storage/storage": typeof storage_storage;
   "storage/tables": typeof storage_tables;
   "vector/tables": typeof vector_tables;
   "vector/vector": typeof vector_vector;
+  "workflow/machine": typeof workflow_machine;
 }>;
 export type Mounts = {
   machine: {
