@@ -16,9 +16,12 @@ export class ConvexVector extends MastraVector {
     this.api = component.vector;
   }
 
-  private getApi(): ActionCtx {
+  getApi(): ActionCtx {
     if (!this.ctx) {
-      throw new Error("Context not set");
+      throw new Error(
+        "Context not set: ensure you're specifying the agents you" +
+          " use to the Convex WorkflowRegistry.register function options argument."
+      );
     }
     return this.ctx;
   }

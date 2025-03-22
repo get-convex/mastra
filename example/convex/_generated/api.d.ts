@@ -55,11 +55,7 @@ export declare const components: {
       run: FunctionReference<
         "mutation",
         "internal",
-        {
-          input: any;
-          logLevel: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
-          machineId: string;
-        },
+        { input: any; machineId: string },
         any
       >;
       status: FunctionReference<

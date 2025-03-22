@@ -55,11 +55,7 @@ export type Mounts = {
     run: FunctionReference<
       "mutation",
       "public",
-      {
-        input: any;
-        logLevel: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
-        machineId: string;
-      },
+      { input: any; machineId: string },
       any
     >;
     status: FunctionReference<"query", "public", { machineId: string }, any>;

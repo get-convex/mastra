@@ -29,7 +29,10 @@ import { UseApi } from "./types.js";
 
 function getApi(ctx: ActionCtx | undefined): ActionCtx {
   if (!ctx) {
-    throw new Error("Context not set");
+    throw new Error(
+      "Context not set: ensure you're specifying the agents you" +
+        " use to the Convex WorkflowRegistry.register function options argument."
+    );
   }
   return ctx;
 }

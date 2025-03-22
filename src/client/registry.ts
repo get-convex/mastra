@@ -3,13 +3,36 @@ export * as libsql from "@libsql/client";
 export * from "./storage.js";
 
 import { internalActionGeneric } from "convex/server";
-import { v } from "convex/values";
+import { ObjectType, v } from "convex/values";
 import type { api } from "../component/_generated/api.js";
 import { UseApi } from "./types.js";
 import { Agent, MastraStorage, StepAction, Workflow } from "@mastra/core";
-import { InMemoryStorage, InMemoryVector } from "./in-memory.js";
-import { createLogger, LogLevel } from "../component/logger.js";
-import { MastraVector } from "@mastra/core/vector";
+import { InMemoryStorage } from "./in-memory.js";
+import {
+  createLogger,
+  DEFAULT_LOG_LEVEL,
+  LogLevel,
+} from "../component/logger.js";
+import { ConvexVector } from "./vector.js";
+import { ConvexStorage } from "./storage.js";
+
+const actionArgs = {
+  op: v.union(
+    v.object({
+      kind: v.literal("create"),
+      fnHandle: v.string(),
+      fnName: v.string(),
+    }),
+    v.object({
+      kind: v.literal("run"),
+      runId: v.string(),
+      stepId: v.string(),
+      triggerData: v.any(),
+      resumeData: v.any(),
+    })
+  ),
+};
+export type ActionArgs = ObjectType<typeof actionArgs>;
 
 export class WorkflowRegistry {
   storage: MastraStorage;
@@ -18,46 +41,32 @@ export class WorkflowRegistry {
     public component: UseApi<typeof api>,
     public options?: {
       logLevel?: LogLevel;
+    }
+  ) {
+    this.storage = new InMemoryStorage();
+    this.logLevel = options?.logLevel ?? DEFAULT_LOG_LEVEL;
+    // TODO: take in default retry config
+  }
+  define(
+    workflow: Workflow,
+    options?: {
       /** Specify agents that should use Convex for Storage and Vector */
       agents?: Agent[];
     }
   ) {
-    this.storage = new InMemoryStorage();
-    this.logLevel = options?.logLevel ?? "INFO";
-    let vector: MastraVector | undefined;
-    for (const agent of options?.agents ?? []) {
-      const memory = agent.getMemory();
-      if (memory) {
-        if (!vector) {
-          vector = new InMemoryVector();
-        }
-        memory.setVector(vector);
-        memory.setStorage(this.storage);
-      }
-    }
-    // TODO: take in default retry config
-  }
-  registerWorkflow(workflow: Workflow) {
     const console = createLogger(this.logLevel);
+    const agents =
+      options?.agents ??
+      Object.values(
+        Object.values(workflow.steps)
+          .find((step) => step.mastra?.getAgents())
+          ?.mastra?.getAgents() ?? {}
+      );
     const action = internalActionGeneric({
-      args: {
-        op: v.union(
-          v.object({
-            kind: v.literal("create"),
-            fnHandle: v.string(),
-            fnName: v.string(),
-          }),
-          v.object({
-            kind: v.literal("run"),
-            runId: v.string(),
-            stepId: v.string(),
-            triggerData: v.any(),
-            resumeData: v.any(),
-          })
-        ),
-      },
+      args: actionArgs,
       handler: async (ctx, args) => {
         if (args.op.kind === "create") {
+          console.debug("Creating machine from client", args.op.fnName);
           const machineId = await ctx.runMutation(
             this.component.machine.create,
             {
@@ -69,7 +78,17 @@ export class WorkflowRegistry {
             }
           );
           return machineId;
-        } else if (args.op.kind === "run") {
+        }
+        for (const agent of agents) {
+          const memory = agent.getMemory();
+          if (memory?.vector instanceof ConvexVector) {
+            memory.vector.ctx = ctx;
+          }
+          if (memory?.storage instanceof ConvexStorage) {
+            memory.storage.ctx = ctx;
+          }
+        }
+        if (args.op.kind === "run") {
           // TODO: validate input
           const step = workflow.steps[args.op.stepId] as StepAction<
             string,

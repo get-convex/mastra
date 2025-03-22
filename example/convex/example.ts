@@ -40,11 +40,12 @@ const workflow = new Workflow({
 });
 
 const registry = new WorkflowRegistry(components.mastra, {
-  agents: [agent],
   logLevel: "DEBUG",
 });
 
-export const workflowAction = registry.registerWorkflow(workflow);
+export const workflowAction = registry.define(workflow, {
+  agents: [agent],
+});
 
 // Can run this not in node:
 
@@ -58,8 +59,10 @@ export const startWorkflow = action({
       internal.example.workflowAction
     );
 
-    await start({
+    const result = await start({
       name: "John Doe",
     });
+    console.debug("Workflow result", result);
+    return result;
   },
 });

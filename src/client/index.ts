@@ -8,25 +8,24 @@ import {
 import type { api } from "../component/_generated/api";
 import { UseApi } from "./types";
 import { LogLevel } from "../component/logger";
-import { createLogger } from "../component/logger";
+import { ActionArgs } from "./registry";
 
 export class WorkflowRunner {
-  logLevel: LogLevel;
   constructor(
     public component: UseApi<typeof api>,
     public options?: { logLevel?: LogLevel }
-  ) {
-    this.logLevel = options?.logLevel ?? "DEBUG";
-  }
+  ) {}
   async create(
     ctx: GenericActionCtx<GenericDataModel>,
     fn: FunctionReference<"action", "internal">
   ) {
-    const console = createLogger(this.options?.logLevel ?? "DEBUG");
-    console.debug("Creating machine from client", getFunctionName(fn));
-    const fnHandle = await createFunctionHandle(fn);
+    const fnHandle = await createFunctionHandle<"action", ActionArgs, null>(fn);
     const runId = await ctx.runAction(fn, {
-      op: { kind: "create", fnHandle, fnName: getFunctionName(fn) },
+      op: {
+        kind: "create",
+        fnHandle,
+        fnName: getFunctionName(fn),
+      },
     });
     return {
       runId,
@@ -34,34 +33,38 @@ export class WorkflowRunner {
       resume: this.resume.bind(this, ctx, runId),
     };
   }
+  async startAsync(
+    ctx: GenericActionCtx<GenericDataModel>,
+    runId: string,
+    initialData: unknown
+  ) {
+    await ctx.runMutation(this.component.machine.run, {
+      machineId: runId,
+      input: { initialData },
+    });
+  }
   async start(
     ctx: GenericActionCtx<GenericDataModel>,
     runId: string,
     initialData: unknown
   ) {
-    const console = createLogger(this.logLevel);
-    console.debug("Starting machine from client", runId, initialData);
-    await ctx.runMutation(this.component.machine.run, {
-      machineId: runId,
-      input: { initialData },
-      logLevel: this.logLevel,
-    });
+    await this.startAsync(ctx, runId, initialData);
+    return await this.waitForCompletion(ctx, runId);
   }
   async resume(
     ctx: GenericActionCtx<GenericDataModel>,
     runId: string,
     resumeData: unknown
   ) {
-    const console = createLogger(this.logLevel);
-    console.debug("Resuming machine from client", runId, resumeData);
     await ctx.runMutation(this.component.machine.run, {
       machineId: runId,
       input: { resumeData },
-      logLevel: this.logLevel,
     });
   }
-  async execute(ctx: GenericActionCtx<GenericDataModel>, runId: string) {
-    const console = createLogger(this.logLevel);
+  async waitForCompletion(
+    ctx: GenericActionCtx<GenericDataModel>,
+    runId: string
+  ) {
     console.debug("Polling from client", runId);
     while (true) {
       const status = await ctx.runQuery(this.component.machine.status, {
@@ -75,6 +78,3 @@ export class WorkflowRunner {
     }
   }
 }
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const console = "THIS IS A REMINDER TO USE createLogger";
