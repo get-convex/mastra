@@ -1,5 +1,6 @@
 import { vRetryBehavior, workIdValidator } from "@convex-dev/workpool";
-import { Infer, v } from "convex/values";
+import { Infer, ObjectType, v } from "convex/values";
+import { logLevel } from "../logger";
 
 // Just for readability
 export const vStepId = v.string();
@@ -71,6 +72,39 @@ export const stepStatus = v.union(
   })
 );
 export type StepStatus = Infer<typeof stepStatus>;
+
+export const actionArgs = {
+  logLevel,
+  op: v.union(
+    v.object({
+      kind: v.literal("getConfig"),
+    }),
+    v.object({
+      kind: v.literal("run"),
+      runId: v.string(),
+      stepId: v.string(),
+      triggerData: v.any(),
+      stepsStatus: v.record(v.string(), stepStatus),
+    }),
+    v.object({
+      kind: v.literal("findTransitions"),
+      runId: v.string(),
+      stepIds: v.array(v.string()),
+      triggerData: v.any(),
+      stepsStatus: v.record(v.string(), stepStatus),
+    })
+  ),
+};
+export type ActionArgs = ObjectType<typeof actionArgs>;
+export type WorkflowConfig = {
+  name: string;
+  stepConfigs: StepConfig[];
+  initialSteps: string[];
+};
+export type Transitions = {
+  id: string;
+  state: StepStatus;
+};
 
 // export type vCondition = v.union(
 //   vBaseCondition,

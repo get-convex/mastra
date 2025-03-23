@@ -3,68 +3,30 @@ export * as libsql from "@libsql/client";
 export * from "./storage.js";
 
 import { internalActionGeneric } from "convex/server";
-import { ObjectType, v } from "convex/values";
 import type { api } from "../component/_generated/api.js";
-import { RunQueryCtx, UseApi } from "./types.js";
+import { UseApi } from "./types.js";
 import {
   Agent,
-  MastraStorage,
   Step,
   StepResult,
-  StepVariableType,
   Workflow,
   WorkflowContext,
 } from "@mastra/core";
-import { InMemoryStorage } from "./in-memory.js";
-import {
-  createLogger,
-  DEFAULT_LOG_LEVEL,
-  Logger,
-  logLevel,
-  LogLevel,
-} from "../component/logger.js";
+import { createLogger, Logger } from "../component/logger.js";
 import { ConvexVector } from "./vector.js";
 import { ConvexStorage } from "./storage.js";
-import schema from "../component/schema.js";
 import {
   StepConfig,
-  StepStatus,
-  stepStatus,
+  ActionArgs,
+  actionArgs,
+  Transitions,
+  WorkflowConfig,
 } from "../component/workflow/types.js";
 
 export const DEFAULT_RETRY_BEHAVIOR = {
   maxAttempts: 5,
   initialBackoffMs: 1000,
   base: 2,
-};
-
-const actionArgs = {
-  logLevel,
-  op: v.union(
-    v.object({
-      kind: v.literal("getConfig"),
-    }),
-    v.object({
-      kind: v.literal("run"),
-      runId: v.string(),
-      stepId: v.string(),
-      triggerData: v.any(),
-      stepsStatus: v.record(v.string(), stepStatus),
-    }),
-    v.object({
-      kind: v.literal("getNextUp"),
-      runId: v.string(),
-      stepIds: v.array(v.string()),
-      triggerData: v.any(),
-      stepsStatus: v.record(v.string(), stepStatus),
-    })
-  ),
-};
-export type ActionArgs = ObjectType<typeof actionArgs>;
-export type WorkflowConfig = {
-  name: string;
-  stepConfigs: StepConfig[];
-  initialSteps: string[];
 };
 
 export class WorkflowRegistry {
@@ -107,9 +69,9 @@ export class WorkflowRegistry {
           console.debug("Getting config", workflow.name);
           return encodeWorkflow(workflow);
         }
-        if (op.kind === "getNextUp") {
-          console.debug("Getting next up", workflow.name);
-          return getNextUp(op.stepIds, op.triggerData, op.stepsStatus);
+        if (op.kind === "findTransitions") {
+          console.debug("Finding transitions", workflow.name);
+          return findTransitions(console, workflow, op);
         }
 
         for (const agent of agents) {
@@ -269,12 +231,11 @@ async function runStep(
   }
 }
 
-function getNextUp(
-  stepIds: string[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  triggerData: any,
-  stepsStatus: Record<string, StepStatus>
-) {
+function findTransitions(
+  console: Logger,
+  workflow: Workflow,
+  op: ActionArgs["op"] & { kind: "findTransitions" }
+): Transitions[] {
   return [];
 }
 
