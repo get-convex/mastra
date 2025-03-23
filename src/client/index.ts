@@ -83,7 +83,7 @@ export class WorkflowRunner {
       stepStates: status.stepStates?.reduce(
         (acc, stepState) => {
           if (stepState) {
-            acc[stepState.stepId] = stepState.status;
+            acc[stepState.stepId] = stepState.state;
           }
           return acc;
         },
