@@ -11,6 +11,7 @@ export const debugOverrideLogLevel = internalMutation({
     if (frozen) {
       await ctx.db.patch(frozen._id, {
         config: {
+          ...frozen.config,
           logLevel: args.logLevel,
         },
       });
