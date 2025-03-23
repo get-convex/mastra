@@ -1,28 +1,30 @@
 import {
   createFunctionHandle,
   FunctionReference,
-  GenericActionCtx,
-  GenericDataModel,
   getFunctionName,
 } from "convex/server";
 import type { api } from "../component/_generated/api";
-import { UseApi } from "./types";
-import { LogLevel } from "../component/logger";
-import { ActionArgs } from "./registry";
+import { OpaqueIds, RunMutationCtx, RunQueryCtx, UseApi } from "./types";
+import { DEFAULT_LOG_LEVEL, LogLevel } from "../component/logger";
+import type { ActionArgs } from "./registry";
+import { StepStatus } from "../component/workflow/types";
 
 export class WorkflowRunner {
+  logLevel: LogLevel;
   constructor(
     public component: UseApi<typeof api>,
     public options?: { logLevel?: LogLevel }
-  ) {}
+  ) {
+    this.logLevel = options?.logLevel ?? DEFAULT_LOG_LEVEL;
+  }
   async create(
-    ctx: GenericActionCtx<GenericDataModel>,
+    ctx: RunMutationCtx,
     fn: FunctionReference<"action", "internal">
   ) {
     const fnHandle = await createFunctionHandle<"action", ActionArgs, null>(fn);
-    const runId = await ctx.runAction(fn, {
-      op: {
-        kind: "create",
+    const runId = await ctx.runMutation(this.component.workflow.index.create, {
+      logLevel: this.logLevel,
+      workflow: {
         fnHandle,
         fnName: getFunctionName(fn),
       },
@@ -30,51 +32,63 @@ export class WorkflowRunner {
     return {
       runId,
       start: this.start.bind(this, ctx, runId),
+      startAsync: this.startAsync.bind(this, ctx, runId),
       resume: this.resume.bind(this, ctx, runId),
     };
   }
-  async startAsync(
-    ctx: GenericActionCtx<GenericDataModel>,
-    runId: string,
-    initialData: unknown
-  ) {
-    await ctx.runMutation(this.component.machine.run, {
-      machineId: runId,
-      input: { initialData },
+  async startAsync(ctx: RunMutationCtx, runId: string, initialData: unknown) {
+    await ctx.runMutation(this.component.workflow.index.start, {
+      workflowId: runId,
+      initialData,
     });
   }
-  async start(
-    ctx: GenericActionCtx<GenericDataModel>,
-    runId: string,
-    initialData: unknown
-  ) {
+  async start(ctx: RunMutationCtx, runId: string, initialData: unknown) {
     await this.startAsync(ctx, runId, initialData);
-    return await this.waitForCompletion(ctx, runId);
+    return await this.waitForResult(ctx, runId);
   }
   async resume(
-    ctx: GenericActionCtx<GenericDataModel>,
+    ctx: RunMutationCtx,
     runId: string,
-    resumeData: unknown
+    resumeArgs: { stepId: string; context: unknown }
   ) {
-    await ctx.runMutation(this.component.machine.run, {
-      machineId: runId,
-      input: { resumeData },
+    await ctx.runMutation(this.component.workflow.index.resume, {
+      workflowId: runId,
+      stepId: resumeArgs.stepId,
+      resumeData: resumeArgs.context,
     });
   }
-  async waitForCompletion(
-    ctx: GenericActionCtx<GenericDataModel>,
-    runId: string
-  ) {
+  async waitForResult(ctx: RunQueryCtx, runId: string) {
     console.debug("Polling from client", runId);
     while (true) {
-      const status = await ctx.runQuery(this.component.machine.status, {
-        machineId: runId,
-      });
-      const completed = !!status; // TODO: check status
-      if (completed) {
-        return status.name; // TODO: return output
+      const status = await this.getStatus(ctx, runId);
+      if (!status) {
+        return null;
+      }
+      // TODO: should this return if it's suspended?
+      if (["completed", "failed"].includes(status.status)) {
+        return status;
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
+  }
+  async getStatus(ctx: RunQueryCtx, runId: string) {
+    const status = await ctx.runQuery(this.component.workflow.index.status, {
+      workflowId: runId,
+    });
+    if (!status) {
+      return null;
+    }
+    return {
+      status: status.status,
+      stepStates: status.stepStates?.reduce(
+        (acc, stepState) => {
+          if (stepState) {
+            acc[stepState.stepId] = stepState.status;
+          }
+          return acc;
+        },
+        {} as Record<string, OpaqueIds<StepStatus>>
+      ),
+    };
   }
 }

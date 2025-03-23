@@ -15,7 +15,9 @@ import type * as storage_storage from "../storage/storage.js";
 import type * as storage_tables from "../storage/tables.js";
 import type * as vector_tables from "../vector/tables.js";
 import type * as vector_vector from "../vector/vector.js";
-import type * as workflow_machine from "../workflow/machine.js";
+import type * as workflow_index from "../workflow/index.js";
+import type * as workflow_lib from "../workflow/lib.js";
+import type * as workflow_types from "../workflow/types.js";
 
 import type {
   ApiFromModules,
@@ -38,28 +40,11 @@ declare const fullApi: ApiFromModules<{
   "storage/tables": typeof storage_tables;
   "vector/tables": typeof vector_tables;
   "vector/vector": typeof vector_vector;
-  "workflow/machine": typeof workflow_machine;
+  "workflow/index": typeof workflow_index;
+  "workflow/lib": typeof workflow_lib;
+  "workflow/types": typeof workflow_types;
 }>;
 export type Mounts = {
-  machine: {
-    create: FunctionReference<
-      "mutation",
-      "public",
-      {
-        fnName: string;
-        logLevel: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
-        name: string;
-      },
-      any
-    >;
-    run: FunctionReference<
-      "mutation",
-      "public",
-      { input: any; machineId: string },
-      any
-    >;
-    status: FunctionReference<"query", "public", { machineId: string }, any>;
-  };
   storage: {
     messages: {
       deleteThread: FunctionReference<
@@ -488,6 +473,32 @@ export type Mounts = {
       >;
     };
   };
+  workflow: {
+    index: {
+      create: FunctionReference<
+        "mutation",
+        "public",
+        {
+          logLevel: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+          workflow: { fnHandle: string; fnName: string };
+        },
+        any
+      >;
+      resume: FunctionReference<
+        "mutation",
+        "public",
+        { resumeData?: any; stepId: string; workflowId: string },
+        any
+      >;
+      start: FunctionReference<
+        "mutation",
+        "public",
+        { initialData?: any; workflowId: string },
+        any
+      >;
+      status: FunctionReference<"query", "public", { workflowId: string }, any>;
+    };
+  };
 };
 // For now fullApiWithMounts is only fullApi which provides
 // jump-to-definition in component client code.
@@ -503,4 +514,57 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  workpool: {
+    lib: {
+      cancel: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          id: string;
+          logLevel: "DEBUG" | "INFO" | "REPORT" | "WARN" | "ERROR";
+        },
+        any
+      >;
+      cancelAll: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          before?: number;
+          logLevel: "DEBUG" | "INFO" | "REPORT" | "WARN" | "ERROR";
+        },
+        any
+      >;
+      enqueue: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          config: {
+            logLevel: "DEBUG" | "INFO" | "REPORT" | "WARN" | "ERROR";
+            maxParallelism: number;
+          };
+          fnArgs: any;
+          fnHandle: string;
+          fnName: string;
+          fnType: "action" | "mutation";
+          onComplete?: { context?: any; fnHandle: string };
+          retryBehavior?: {
+            base: number;
+            initialBackoffMs: number;
+            maxAttempts: number;
+          };
+          runAt: number;
+        },
+        string
+      >;
+      status: FunctionReference<
+        "query",
+        "internal",
+        { id: string },
+        | { previousAttempts: number; state: "pending" }
+        | { previousAttempts: number; state: "running" }
+        | { state: "finished" }
+      >;
+    };
+  };
+};

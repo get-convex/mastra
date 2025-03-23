@@ -1,4 +1,21 @@
 import type { TABLE_NAMES as ORIGINAL_TABLE_NAMES } from "@mastra/core/storage";
+import { convexTest } from "convex-test";
+import { Infer, v } from "convex/values";
+import { expect, test } from "vitest";
+import { Content } from "../ai/types";
+import { api, internal } from "../component/_generated/api";
+import { Doc, Id } from "../component/_generated/dataModel";
+import {
+  action,
+  internalAction,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "../component/_generated/server";
+
+import schema from "../component/schema";
+
 import type {
   TABLE_NAMES as NEW_TABLE_NAMES,
   SerializedContent,
@@ -7,8 +24,6 @@ import type {
   vSerializedMessage,
   vSerializedThread,
 } from "./storage";
-import { Infer } from "convex/values";
-import { Content } from "../ai/types";
 
 // type assertsions
 const _tableNames: ORIGINAL_TABLE_NAMES = "" as NEW_TABLE_NAMES;
@@ -30,3 +45,7 @@ const _serializedThread: SerializedThread = {} as Infer<
 >;
 const _serializedThread2: Infer<typeof vSerializedThread> =
   {} as SerializedThread;
+
+test("test", async () => {
+  const t = convexTest(schema);
+});

@@ -43,30 +43,6 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   mastra: {
-    machine: {
-      create: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          fnName: string;
-          logLevel: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
-          name: string;
-        },
-        any
-      >;
-      run: FunctionReference<
-        "mutation",
-        "internal",
-        { input: any; machineId: string },
-        any
-      >;
-      status: FunctionReference<
-        "query",
-        "internal",
-        { machineId: string },
-        any
-      >;
-    };
     storage: {
       messages: {
         deleteThread: FunctionReference<
@@ -501,6 +477,37 @@ export declare const components: {
             vectors: Array<Array<number>>;
           },
           Array<string>
+        >;
+      };
+    };
+    workflow: {
+      index: {
+        create: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            logLevel: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
+            workflow: { fnHandle: string; fnName: string };
+          },
+          any
+        >;
+        resume: FunctionReference<
+          "mutation",
+          "internal",
+          { resumeData?: any; stepId: string; workflowId: string },
+          any
+        >;
+        start: FunctionReference<
+          "mutation",
+          "internal",
+          { initialData?: any; workflowId: string },
+          any
+        >;
+        status: FunctionReference<
+          "query",
+          "internal",
+          { workflowId: string },
+          any
         >;
       };
     };
