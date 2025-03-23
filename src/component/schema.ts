@@ -53,8 +53,10 @@ export default defineSchema({
   stepStates: defineTable({
     workflowId: v.id("workflows"),
     id: vStepId,
+    state: stepStatus,
     // Each time we loop back to a step, we make a new state.
     iteration: v.number(),
-    status: stepStatus,
+    // So we can time travel to see what this was based on.
+    inputStateIds: v.array(v.id("stepStates")),
   }).index("workflowId_id_iteration", ["workflowId", "id", "iteration"]),
 });

@@ -56,8 +56,9 @@ export const startRun = internalMutation({
         return await ctx.db.insert("stepStates", {
           workflowId: args.workflowId,
           id: stepConfig.id,
-          status: { kind: "waiting" },
+          state: { status: "waiting" },
           iteration: 0,
+          inputStateIds: [],
         });
       })
     );
@@ -95,19 +96,19 @@ export async function startSteps(
       if (!stepsToStart.includes(stepState.id)) {
         return stepState;
       }
-      if (stepState.status.kind !== "waiting") {
+      if (stepState.state.status !== "waiting") {
         throw new Error(
           "Step is trying to start, but is not waiting: " + stepState.id
         );
       }
       const newStateId = await ctx.db.insert("stepStates", {
         ...stepState,
-        iteration: stepState.iteration + 1,
-        status: {
-          kind: "running",
-          inputStateIds: [], // we'll patch this next with the updated list
+        state: {
+          status: "running",
           workpoolId: "" as WorkId, // we'll patch this next with the workpool id
         },
+        iteration: stepState.iteration + 1,
+        inputStateIds: [], // we'll patch this next with the updated list
       });
       return (await ctx.db.get(newStateId))!;
     })
@@ -125,15 +126,15 @@ export async function startSteps(
     }
     const workpoolId = await enqueueStep(ctx, s.id, workflowState, allStates);
     // TODO: schedule them in workpool
-    if (s.status.kind !== "running") {
+    if (s.state.status !== "running") {
       throw new Error("Step status should be running: " + s._id);
     }
 
     await ctx.db.patch(s._id, {
-      status: {
-        ...s.status,
+      inputStateIds,
+      state: {
+        ...s.state,
         workpoolId,
-        inputStateIds,
       },
     });
   }

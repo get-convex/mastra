@@ -14,7 +14,6 @@ export const vVariableRef = v.object({
 export const stepConfig = v.object({
   id: vStepId,
   description: v.optional(v.string()),
-  payload: v.optional(v.any()),
   retryBehavior: v.optional(vRetryBehavior),
   kind:
     // v.union(
@@ -26,6 +25,7 @@ export const stepConfig = v.object({
   childrenIds: v.optional(v.array(v.string())),
   // We evaluate all of these in the function that has in-memory copy of the
   // workflow.
+  // payload: v.optional(v.any()),
   // condition: v.optional(
   //   v.union(
   //     v.object({
@@ -46,32 +46,27 @@ export type StepConfig = Infer<typeof stepConfig>;
 
 export const stepStatus = v.union(
   v.object({
-    kind: v.literal("waiting"),
+    status: v.literal("waiting"),
     // waitingOn: v.array(v.string()),
   }),
   v.object({
-    kind: v.literal("running"),
-    inputStateIds: v.array(v.id("stepStates")),
+    status: v.literal("running"),
     resumeData: v.optional(v.any()),
     workpoolId: workIdValidator,
   }),
   v.object({
-    kind: v.literal("suspended"),
-    inputStateIds: v.array(v.id("stepStates")),
+    status: v.literal("suspended"),
     suspendPayload: v.any(),
   }),
   v.object({
-    inputStateIds: v.array(v.id("stepStates")),
-    kind: v.literal("skipped"),
+    status: v.literal("skipped"),
   }),
   v.object({
-    inputStateIds: v.array(v.id("stepStates")),
-    kind: v.literal("success"),
+    status: v.literal("success"),
     output: v.any(),
   }),
   v.object({
-    inputStateIds: v.array(v.id("stepStates")),
-    kind: v.literal("failed"),
+    status: v.literal("failed"),
     error: v.string(),
   })
 );
