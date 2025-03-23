@@ -143,7 +143,14 @@ async function runStep(
   workflow: Workflow,
   op: ActionArgs["op"] & { kind: "run" }
 ): Promise<StepResult<unknown>> {
-  // TODO: validate input
+  let triggerData = op.triggerData;
+  if (workflow.triggerSchema) {
+    const validated = workflow.triggerSchema.safeParse(op.triggerData);
+    if (!validated.success) {
+      return { status: "failed", error: validated.error.message };
+    }
+    triggerData = validated.data;
+  }
   const step = workflow.steps[op.stepId] as Step<
     string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -155,9 +162,10 @@ async function runStep(
   >;
   const stepStatus = op.stepsStatus[op.stepId];
   if (stepStatus.status !== "running") {
-    throw new Error(
-      `Step ${op.stepId} should be running for runId ${op.runId}`
-    );
+    return {
+      status: "failed",
+      error: `Step ${op.stepId} isn't running, it's ${stepStatus.status}`,
+    };
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const steps: Record<string, StepResult<any>> = {};
@@ -183,13 +191,13 @@ async function runStep(
   }
   const context: WorkflowContext = {
     steps,
-    triggerData: op.triggerData,
+    triggerData,
     inputData,
     attempts: {}, // we handle retries ourselves
     getStepResult: (idOrStep: string | Step) => {
       const stepId = typeof idOrStep === "string" ? idOrStep : idOrStep.id;
       if (stepId === "trigger") {
-        return op.triggerData;
+        return triggerData;
       }
       const stepResult = steps[stepId];
       if (stepResult.status === "success") {

@@ -6,7 +6,7 @@ import {
 import type { api } from "../component/_generated/api";
 import { OpaqueIds, RunMutationCtx, RunQueryCtx, UseApi } from "./types";
 import { DEFAULT_LOG_LEVEL, LogLevel } from "../component/logger";
-import type { ActionArgs } from "./registry";
+import type { ActionArgs } from "../component/workflow/types";
 import { StepStatus } from "../component/workflow/types";
 
 export class WorkflowRunner {
