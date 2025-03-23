@@ -3,6 +3,15 @@ import storageTables from "./storage/tables.js";
 import { v } from "convex/values";
 import { logLevel } from "./logger.js";
 import vectorTables from "./vector/tables.js";
+import { stepConfig, stepStatus, vStepId } from "./workflow/types.js";
+
+const vWorkflowConfiguredState = {
+  name: v.string(),
+  triggerData: v.optional(v.record(v.string(), v.any())),
+  stepConfigs: v.array(stepConfig),
+  stepStateIds: v.array(v.id("stepStates")),
+};
+
 export default defineSchema({
   config: defineTable({
     config: v.object({
@@ -11,10 +20,41 @@ export default defineSchema({
   }),
   ...storageTables,
   ...vectorTables,
-  machines: defineTable({
-    name: v.string(),
+  workflows: defineTable({
     fnName: v.string(),
-    // step config
-    // retry config (per step)
+    fnHandle: v.string(),
+    state: v.union(
+      v.object({
+        status: v.literal("created"),
+      }),
+      v.object({
+        status: v.literal("pending"),
+      }),
+      v.object({
+        status: v.literal("running"),
+        ...vWorkflowConfiguredState,
+      }),
+      v.object({
+        status: v.literal("suspended"),
+        ...vWorkflowConfiguredState,
+      }),
+      v.object({
+        status: v.literal("completed"),
+        ...vWorkflowConfiguredState,
+      }),
+      v.object({
+        status: v.literal("failed"),
+        ...vWorkflowConfiguredState,
+      })
+    ),
   }),
+
+  // One per step execution, updated during workflow execution.
+  stepStates: defineTable({
+    workflowId: v.id("workflows"),
+    id: vStepId,
+    // Each time we loop back to a step, we make a new state.
+    iteration: v.number(),
+    status: stepStatus,
+  }).index("workflowId_id_iteration", ["workflowId", "id", "iteration"]),
 });
