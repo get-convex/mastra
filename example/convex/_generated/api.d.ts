@@ -9,7 +9,8 @@
  */
 
 import type * as _hax from "../_hax.js";
-import type * as example from "../example.js";
+import type * as nodeRuntime from "../nodeRuntime.js";
+import type * as v8Runtime from "../v8Runtime.js";
 
 import type {
   ApiFromModules,
@@ -26,7 +27,8 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   _hax: typeof _hax;
-  example: typeof example;
+  nodeRuntime: typeof nodeRuntime;
+  v8Runtime: typeof v8Runtime;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

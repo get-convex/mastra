@@ -1,11 +1,12 @@
 "use node";
-import { action } from "./_generated/server";
+import { action, query } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 import { WorkflowRunner } from "@convex-dev/mastra";
 import { WorkflowRegistry } from "@convex-dev/mastra/registry";
 import { Agent, createStep, Workflow } from "@mastra/core";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
+import { v } from "convex/values";
 
 const agent = new Agent({
   name: "summarizer",
@@ -39,9 +40,7 @@ const workflow = new Workflow({
   },
 });
 
-const registry = new WorkflowRegistry(components.mastra, {
-  logLevel: "DEBUG",
-});
+const registry = new WorkflowRegistry(components.mastra);
 
 export const workflowAction = registry.define(workflow, {
   agents: [agent],
@@ -54,15 +53,15 @@ const runner = new WorkflowRunner(components.mastra);
 export const startWorkflow = action({
   args: {},
   handler: async (ctx, args) => {
-    const { runId, start } = await runner.create(
+    const { runId, startAsync } = await runner.create(
       ctx,
-      internal.example.workflowAction
+      internal.nodeRuntime.workflowAction
     );
 
-    const result = await start({
+    const result = await startAsync({
       name: "John Doe",
     });
     console.debug("Workflow result", result);
-    return result;
+    return runner.getStatus(ctx, runId);
   },
 });
