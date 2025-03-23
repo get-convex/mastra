@@ -51,7 +51,7 @@ export const stepStatus = v.union(
   }),
   v.object({
     status: v.literal("running"),
-    resumeData: v.optional(v.any()),
+    resumeData: v.optional(v.record(v.string(), v.any())),
     workpoolId: workIdValidator,
   }),
   v.object({

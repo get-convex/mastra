@@ -77,7 +77,7 @@ export const resume = mutation({
     }
     console.debug("Resuming workflow", args);
 
-    await startSteps(ctx, args.workflowId, [args.stepId]);
+    await startSteps(ctx, args.workflowId, [args.stepId], args.resumeData);
   },
 });
 

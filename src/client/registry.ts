@@ -223,7 +223,6 @@ async function runStep(
     steps,
     triggerData: op.triggerData,
     inputData,
-    // resumeData: stepStatus.resumeData,
     attempts: {}, // we handle retries ourselves
     getStepResult: (idOrStep: string | Step) => {
       const stepId = typeof idOrStep === "string" ? idOrStep : idOrStep.id;

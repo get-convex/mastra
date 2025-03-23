@@ -83,7 +83,8 @@ export const startRun = internalMutation({
 export async function startSteps(
   ctx: MutationCtx,
   workflowId: Id<"workflows">,
-  stepsToStart: string[]
+  stepsToStart: string[],
+  resumeData?: Record<string, unknown>
 ) {
   const workflow = await ctx.db.get(workflowId);
   if (!workflow) {
@@ -112,6 +113,7 @@ export async function startSteps(
         state: {
           status: "running",
           workpoolId: "" as WorkId, // we'll patch this next with the workpool id
+          resumeData: resumeData,
         },
         iteration: stepState.iteration + 1,
         inputStateIds: [], // we'll patch this next with the updated list
