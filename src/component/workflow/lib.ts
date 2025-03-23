@@ -8,10 +8,12 @@ import {
 import { createLogger, logLevel, LogLevel, DEFAULT_LOG_LEVEL } from "../logger";
 import { Doc, Id } from "../_generated/dataModel";
 import { stepConfig } from "./types";
-import { ActionArgs } from "../../client/registry";
+import { ActionArgs, WorkflowConfig } from "../../client/registry";
 import { FunctionHandle } from "convex/server";
 import { resultValidator, WorkId, workIdValidator } from "@convex-dev/workpool";
 import { internal } from "../_generated/api";
+
+export const DEFAULT_MAX_PARALLELISM = 20;
 
 // const workpool = new Workpool(components.)
 export const configure = internalAction({
@@ -21,7 +23,11 @@ export const configure = internalAction({
     logLevel,
   },
   handler: async (ctx, args) => {
-    const handle = args.fnHandle as FunctionHandle<"action", ActionArgs>;
+    const handle = args.fnHandle as FunctionHandle<
+      "action",
+      ActionArgs,
+      WorkflowConfig
+    >;
     const config = await ctx.runAction(handle, {
       op: { kind: "getConfig" },
       logLevel: DEFAULT_LOG_LEVEL,
@@ -148,12 +154,14 @@ export async function updateConfig(
     const configId = await ctx.db.insert("config", {
       config: {
         logLevel,
+        maxParallelism: DEFAULT_MAX_PARALLELISM,
       },
     });
     config = (await ctx.db.get(configId))!;
   } else if (config.config.logLevel !== logLevel) {
     await ctx.db.patch(config._id, {
       config: {
+        ...config.config,
         logLevel,
       },
     });

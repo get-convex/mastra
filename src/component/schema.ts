@@ -16,6 +16,7 @@ export default defineSchema({
   config: defineTable({
     config: v.object({
       logLevel: logLevel,
+      maxParallelism: v.number(),
     }),
   }),
   ...storageTables,
