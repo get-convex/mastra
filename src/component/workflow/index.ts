@@ -76,8 +76,13 @@ export const resume = mutation({
       throw new Error("Workflow is not running or suspended");
     }
     console.debug("Resuming workflow", args);
-
-    await startSteps(ctx, args.workflowId, [args.stepId], args.resumeData);
+    const stepConfig = workflowState.stepConfigs.find(
+      (s) => s.id === args.stepId
+    );
+    if (!stepConfig) {
+      throw new Error(`Step config ${args.stepId} to resumenot found`);
+    }
+    await startSteps(ctx, args.workflowId, [stepConfig], args.resumeData);
   },
 });
 

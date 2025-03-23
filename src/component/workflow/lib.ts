@@ -80,17 +80,29 @@ export const startRun = internalMutation({
         stepStateIds,
       },
     });
-    await startSteps(ctx, args.workflowId, args.initialSteps);
+    const stepsToStart = args.initialSteps.map((s) => {
+      const stepConfig = args.stepConfigs.find((c) => c.id === s);
+      if (!stepConfig) {
+        throw new Error(`Step config ${s} for initial step not found`);
+      }
+      return stepConfig;
+    });
+
+    await startSteps(ctx, args.workflowId, stepsToStart);
   },
 });
 
 export async function startSteps(
   ctx: MutationCtx,
   workflowId: Id<"workflows">,
-  stepsToStart: string[],
+  stepsToStart: { id: string; dependsOn?: string[] }[],
   resumeData?: Record<string, unknown>
 ) {
-  const toStart = new Set(stepsToStart);
+  const toStart = new Set(stepsToStart.map((s) => s.id));
+  for (const step of stepsToStart) {
+    // TODO: check dependencies
+    // toStart.delete(step.id);
+  }
   const workflow = await ctx.db.get(workflowId);
   if (!workflow) {
     throw new Error("Workflow not found");
@@ -134,8 +146,11 @@ export async function startSteps(
   const stepStateIds = allStates.map((s) => s._id);
   workflowState.stepStateIds = stepStateIds;
   await ctx.db.patch(workflowId, { state: workflowState });
+  if (toStart.size === 0) {
+    return false;
+  }
   for (const s of allStates) {
-    if (!stepsToStart.includes(s.id)) {
+    if (!toStart.has(s.id)) {
       continue;
     }
     const workpoolId = await enqueueStep(ctx, s, workflow, allStates);
@@ -151,6 +166,7 @@ export async function startSteps(
       },
     });
   }
+  return true;
 }
 
 async function enqueueStep(
@@ -244,37 +260,39 @@ export const stepOnComplete = internalMutation({
     if (!workflow) {
       throw new Error("Workflow not found");
     }
-    if (workflow.state.status !== "running") {
+    let workflowState = workflow.state;
+    if (workflowState.status !== "running") {
       console.error("Workflow is not running, but step is suspended", {
         workflow,
         step,
       });
       return;
     }
-    if (!workflow.state.stepStateIds.includes(step._id)) {
+    if (!workflowState.stepStateIds.includes(step._id)) {
       console.warn("Step is not the latest version in the workflow", step);
       return;
     }
 
     if (step.state.status === "suspended") {
-      await ctx.db.patch(args.context.workflowId, {
-        state: {
-          ...workflow.state,
-          status: "suspended",
-        },
-      });
+      workflowState = {
+        ...workflowState,
+        status: "suspended",
+      };
+      workflow.state = workflowState;
+      await ctx.db.patch(args.context.workflowId, { state: workflowState });
     } else if (step.state.status === "success") {
       // we should pursue potential next steps
-      const stepConfig = workflow.state.stepConfigs.find(
+      const stepConfig = workflowState.stepConfigs.find(
         (s) => s.id === step.id
       );
       if (!stepConfig) {
         throw new Error("Step config not found");
       }
-      const childrenToCheck = stepConfig.childrenIds;
+      const childrenToCheck = stepConfig.children;
       if (childrenToCheck && childrenToCheck.length >= 0) {
-        await startSteps(ctx, args.context.workflowId, childrenToCheck);
-        return;
+        if (await startSteps(ctx, args.context.workflowId, childrenToCheck)) {
+          return;
+        }
       }
     }
     await checkForDone(ctx, args.context.workflowId);
@@ -307,10 +325,10 @@ async function checkForDone(ctx: MutationCtx, workflowId: Id<"workflows">) {
   // If there are any successful steps, make sure no children are actionable.
   const noActionableChildren = workflow.state.stepConfigs.every(
     (s) =>
-      !s.childrenIds ||
+      !s.children ||
       statesById[s.id] !== "success" ||
-      s.childrenIds.find((childId) =>
-        ["waiting", "running", "suspended"].includes(statesById[childId])
+      s.children.find((child) =>
+        ["waiting", "running", "suspended"].includes(statesById[child.id])
       ) !== undefined
   );
   if (allDoneOrWaiting && noActionableChildren) {

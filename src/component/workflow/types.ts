@@ -23,7 +23,18 @@ export const stepConfig = v.object({
   //   v.literal("pseudo")
   // ),
   // All steps that follow this one, pending conditions.
-  childrenIds: v.optional(v.array(v.string())),
+  // Note: There may be multiple children with the same id, if they are
+  // conditionally executed.
+  children: v.optional(
+    v.array(
+      v.object({
+        id: vStepId,
+        // Not including this step
+        dependsOn: v.optional(v.array(vStepId)),
+        // TODO: condition: v.optional(v.any()),
+      })
+    )
+  ),
   // We evaluate all of these in the function that has in-memory copy of the
   // workflow.
   // payload: v.optional(v.any()),
