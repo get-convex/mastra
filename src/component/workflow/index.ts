@@ -106,8 +106,8 @@ export const status = query({
         if (!stepState) {
           return null;
         }
-        const { state, iteration, id } = stepState;
-        return { state, iteration, stepId: id };
+        const { state, generation, id } = stepState;
+        return { state, generation, stepId: id };
       })
     );
     const { name, status } = workflowState;

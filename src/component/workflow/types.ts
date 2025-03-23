@@ -57,7 +57,7 @@ export const stepStatus = v.union(
   }),
   v.object({
     status: v.literal("suspended"),
-    suspendPayload: v.any(),
+    suspendPayload: v.optional(v.any()),
   }),
   v.object({
     status: v.literal("skipped"),

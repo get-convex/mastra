@@ -42,10 +42,6 @@ export default defineSchema({
       v.object({
         status: v.literal("completed"),
         ...vWorkflowConfiguredState,
-      }),
-      v.object({
-        status: v.literal("failed"),
-        ...vWorkflowConfiguredState,
       })
     ),
   }),
@@ -56,8 +52,8 @@ export default defineSchema({
     id: vStepId,
     state: stepStatus,
     // Each time we loop back to a step, we make a new state.
-    iteration: v.number(),
+    generation: v.number(),
     // So we can time travel to see what this was based on.
     inputStateIds: v.array(v.id("stepStates")),
-  }).index("workflowId_id_iteration", ["workflowId", "id", "iteration"]),
+  }).index("workflowId_id_iteration", ["workflowId", "id", "generation"]),
 });

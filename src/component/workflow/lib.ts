@@ -1,7 +1,12 @@
-import { resultValidator, WorkId, workIdValidator } from "@convex-dev/workpool";
+import {
+  resultValidator,
+  WorkId,
+  workIdValidator,
+  Workpool,
+} from "@convex-dev/workpool";
 import { FunctionHandle } from "convex/server";
-import { v } from "convex/values";
-import { internal } from "../_generated/api";
+import { Infer, v } from "convex/values";
+import { components, internal } from "../_generated/api";
 import { Doc, Id } from "../_generated/dataModel";
 import {
   internalAction,
@@ -10,11 +15,11 @@ import {
   QueryCtx,
 } from "../_generated/server";
 import { createLogger, DEFAULT_LOG_LEVEL, logLevel, LogLevel } from "../logger";
-import { ActionArgs, stepConfig, WorkflowConfig } from "./types";
+import { ActionArgs, stepConfig, StepStatus, WorkflowConfig } from "./types";
+import { StepResult } from "@mastra/core";
 
 export const DEFAULT_MAX_PARALLELISM = 20;
 
-// const workpool = new Workpool(components.)
 export const configure = internalAction({
   args: {
     workflowId: v.id("workflows"),
@@ -62,7 +67,7 @@ export const startRun = internalMutation({
           workflowId: args.workflowId,
           id: stepConfig.id,
           state: { status: "waiting" },
-          iteration: 0,
+          generation: 0,
           inputStateIds: [],
         });
       })
@@ -85,6 +90,7 @@ export async function startSteps(
   stepsToStart: string[],
   resumeData?: Record<string, unknown>
 ) {
+  const toStart = new Set(stepsToStart);
   const workflow = await ctx.db.get(workflowId);
   if (!workflow) {
     throw new Error("Workflow not found");
@@ -99,13 +105,18 @@ export async function startSteps(
       if (!stepState) {
         throw new Error("Step state not found");
       }
-      if (!stepsToStart.includes(stepState.id)) {
+      if (!toStart.has(stepState.id)) {
         return stepState;
       }
-      if (stepState.state.status !== "waiting") {
-        throw new Error(
-          "Step is trying to start, but is not waiting: " + stepState.id
-        );
+      if (stepState.state.status === "suspended") {
+        // Don't retry a suspended step until it's resumed
+        toStart.delete(stepState.id);
+        return stepState;
+      }
+      if (stepState.state.status === "running") {
+        // Don't start a step that's already running
+        toStart.delete(stepState.id);
+        return stepState;
       }
       const newStateId = await ctx.db.insert("stepStates", {
         ...stepState,
@@ -114,31 +125,26 @@ export async function startSteps(
           workpoolId: "" as WorkId, // we'll patch this next with the workpool id
           resumeData: resumeData,
         },
-        iteration: stepState.iteration + 1,
+        generation: stepState.generation + 1,
         inputStateIds: [], // we'll patch this next with the updated list
       });
       return (await ctx.db.get(newStateId))!;
     })
   );
-  const inputStateIds = allStates.map((s) => s._id);
+  const stepStateIds = allStates.map((s) => s._id);
+  workflowState.stepStateIds = stepStateIds;
+  await ctx.db.patch(workflowId, { state: workflowState });
   for (const s of allStates) {
     if (!stepsToStart.includes(s.id)) {
       continue;
     }
-    const stepConfig = workflowState.stepConfigs.find((s) => s.id === s.id);
-    if (!stepConfig) {
-      throw new Error(
-        `Step config ${s.id} not found for workflow ${workflowId}`
-      );
-    }
-    const workpoolId = await enqueueStep(ctx, s.id, workflowState, allStates);
-    // TODO: schedule them in workpool
+    const workpoolId = await enqueueStep(ctx, s, workflow, allStates);
     if (s.state.status !== "running") {
       throw new Error("Step status should be running: " + s._id);
     }
 
     await ctx.db.patch(s._id, {
-      inputStateIds,
+      inputStateIds: stepStateIds,
       state: {
         ...s.state,
         workpoolId,
@@ -146,6 +152,187 @@ export async function startSteps(
     });
   }
 }
+
+async function enqueueStep(
+  ctx: MutationCtx,
+  step: Doc<"stepStates">,
+  workflow: Doc<"workflows">,
+  allStates: Doc<"stepStates">[]
+): Promise<WorkId> {
+  const workflowState = workflow.state;
+  if (workflowState.status !== "running") {
+    throw new Error("Workflow is not running");
+  }
+  const {
+    config: { logLevel },
+  } = (await ctx.db.query("config").first())!;
+  const workpool = await makeWorkpool(ctx);
+  const fn = workflow.fnHandle as FunctionHandle<"action", ActionArgs>;
+  const stepConfig = workflowState.stepConfigs.find((s) => s.id === step.id);
+  if (!stepConfig) {
+    throw new Error(
+      `Step config ${step.id} not found for workflow ${workflow._id}`
+    );
+  }
+  const workpoolId = await workpool.enqueueAction(
+    ctx,
+    fn,
+    {
+      op: {
+        kind: "run",
+        runId: workflow._id,
+        stepId: step.id,
+        triggerData: workflowState.triggerData,
+        stepsStatus: allStates.reduce(
+          (acc, s) => {
+            acc[s.id] = s.state;
+            return acc;
+          },
+          {} as Record<string, StepStatus>
+        ),
+      },
+      logLevel,
+    },
+    {
+      retry: stepConfig.retryBehavior,
+      onComplete: internal.workflow.lib.stepOnComplete,
+      context: {
+        workflowId: workflow._id,
+        stepStateId: step._id,
+        generation: step.generation,
+      } as Infer<typeof stepOnCompleteContext>,
+    }
+  );
+  return workpoolId;
+}
+
+const stepOnCompleteContext = v.object({
+  workflowId: v.id("workflows"),
+  stepStateId: v.id("stepStates"),
+  generation: v.number(),
+});
+
+export const stepOnComplete = internalMutation({
+  args: {
+    workId: workIdValidator,
+    result: resultValidator,
+    context: stepOnCompleteContext,
+  },
+  handler: async (ctx, args) => {
+    const console = await makeConsole(ctx);
+    const step = await ctx.db.get(args.context.stepStateId);
+    if (!step) {
+      throw new Error("Step state not found");
+    }
+    switch (args.result.kind) {
+      case "success":
+        {
+          const returned = args.result.returnValue as StepResult<unknown>;
+          step.state = returned;
+        }
+        break;
+      case "failed":
+        step.state = { status: "failed", error: args.result.error };
+        break;
+      case "canceled":
+        step.state = { status: "failed", error: "canceled" };
+        break;
+    }
+    console.debug("Step on complete", step.id, step.state, step.workflowId);
+    await ctx.db.patch(step._id, { state: step.state });
+    const workflow = await ctx.db.get(args.context.workflowId);
+    if (!workflow) {
+      throw new Error("Workflow not found");
+    }
+    if (workflow.state.status !== "running") {
+      console.error("Workflow is not running, but step is suspended", {
+        workflow,
+        step,
+      });
+      return;
+    }
+    if (!workflow.state.stepStateIds.includes(step._id)) {
+      console.warn("Step is not the latest version in the workflow", step);
+      return;
+    }
+
+    if (step.state.status === "suspended") {
+      await ctx.db.patch(args.context.workflowId, {
+        state: {
+          ...workflow.state,
+          status: "suspended",
+        },
+      });
+    } else if (step.state.status === "success") {
+      // we should pursue potential next steps
+      const stepConfig = workflow.state.stepConfigs.find(
+        (s) => s.id === step.id
+      );
+      if (!stepConfig) {
+        throw new Error("Step config not found");
+      }
+      const childrenToCheck = stepConfig.childrenIds;
+      if (childrenToCheck && childrenToCheck.length >= 0) {
+        await startSteps(ctx, args.context.workflowId, childrenToCheck);
+        return;
+      }
+    }
+    await checkForDone(ctx, args.context.workflowId);
+  },
+});
+
+async function checkForDone(ctx: MutationCtx, workflowId: Id<"workflows">) {
+  const workflow = await ctx.db.get(workflowId);
+  if (!workflow) {
+    throw new Error("Workflow not found");
+  }
+  if (workflow.state.status !== "running") {
+    throw new Error("Workflow is not running");
+  }
+  const statesById = Object.fromEntries(
+    await Promise.all(
+      workflow.state.stepStateIds.map(async (id) => {
+        const state = await ctx.db.get(id);
+        if (!state) {
+          throw new Error("Step state not found");
+        }
+        return [state.id, state.state.status] as const;
+      })
+    )
+  );
+  // If all steps are done, or waiting but not
+  const allDoneOrWaiting = workflow.state.stepConfigs.every((s) =>
+    ["success", "failed", "skipped", "waiting"].includes(statesById[s.id])
+  );
+  // If there are any successful steps, make sure no children are actionable.
+  const noActionableChildren = workflow.state.stepConfigs.every(
+    (s) =>
+      !s.childrenIds ||
+      statesById[s.id] !== "success" ||
+      s.childrenIds.find((childId) =>
+        ["waiting", "running", "suspended"].includes(statesById[childId])
+      ) !== undefined
+  );
+  if (allDoneOrWaiting && noActionableChildren) {
+    console.debug("Workflow is done, setting to complete", workflowId);
+    await ctx.db.patch(workflowId, {
+      state: {
+        ...workflow.state,
+        status: "completed",
+      },
+    });
+  }
+}
+
+async function makeWorkpool(ctx: QueryCtx) {
+  const config = await ctx.db.query("config").first();
+  const logLevel = config?.config.logLevel ?? DEFAULT_LOG_LEVEL;
+  return new Workpool(components.workpool, {
+    maxParallelism: config?.config.maxParallelism ?? DEFAULT_MAX_PARALLELISM,
+    logLevel: logLevel === "TRACE" ? "INFO" : logLevel,
+  });
+}
+
 export async function updateConfig(
   ctx: MutationCtx,
   logLevel: LogLevel
@@ -173,36 +360,4 @@ export async function updateConfig(
 export async function makeConsole(ctx: QueryCtx) {
   const config = await ctx.db.query("config").first();
   return createLogger(config?.config.logLevel ?? DEFAULT_LOG_LEVEL);
-}
-
-export const stepOnComplete = internalMutation({
-  args: {
-    workId: workIdValidator,
-    result: resultValidator,
-    context: v.object({
-      workflowId: v.id("workflows"),
-      stepId: v.string(),
-    }),
-  },
-  handler: async (ctx, args) => {
-    // TODO: update step state
-    // If suspended, set workflow to suspended
-    // If failed, set workflow to failed
-    // Find next steps to evaluate via fnHandle
-    // If no steps, set workflow to complete
-    // Start next steps
-  },
-});
-
-async function enqueueStep(
-  ctx: MutationCtx,
-  id: string,
-  workflowState: Doc<"workflows">["state"] & { status: "running" },
-  allStates: Doc<"stepStates">[]
-): Promise<WorkId> {
-  // TODO: Implement actual step execution
-  // Get all data needed for step execution
-  // Enqueue step in workpool
-  // Return workpool id
-  return "123" as WorkId;
 }

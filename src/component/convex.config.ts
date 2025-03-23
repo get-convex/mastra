@@ -1,3 +1,7 @@
 import { defineComponent } from "convex/server";
+import workpool from "@convex-dev/workpool/convex.config";
 
-export default defineComponent("mastra");
+const component = defineComponent("mastra");
+component.use(workpool);
+
+export default component;
