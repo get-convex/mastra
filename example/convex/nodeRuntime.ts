@@ -164,16 +164,16 @@ const runner = new WorkflowRunner(components.mastra, {
 export const startWorkflow = action({
   args: {},
   handler: async (ctx) => {
-    const { runId, startAsync } = await runner.create(
+    const { runId, startAsync, start, resume } = await runner.create(
       ctx,
       internal.nodeRuntime.workflowAction
     );
-
-    const result = await startAsync({
+    const result = await start({
       triggerData: { text: "John Doe" },
     });
-    console.debug("Workflow result", result);
-    return runner.getStatus(ctx, runId);
+    console.debug("Workflow result", runId, result);
+
+    return [result, await runner.getStatus(ctx, runId)];
   },
 });
 const storage = new ConvexStorage(components.mastra);
