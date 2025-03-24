@@ -86,10 +86,16 @@ export const updateThread = mutation({
       throw new Error(`Thread ${args.threadId} not found`);
     }
     if (args.title) {
-      await ctx.db.patch(thread._id, { title: args.title });
+      await ctx.db.patch(thread._id, {
+        title: args.title,
+        updatedAt: Date.now(),
+      });
     }
     if (args.metadata) {
-      await ctx.db.patch(thread._id, { metadata: args.metadata });
+      await ctx.db.patch(thread._id, {
+        metadata: args.metadata,
+        updatedAt: Date.now(),
+      });
     }
     return threadToSerializedMastra(thread);
   },
