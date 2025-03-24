@@ -34,17 +34,119 @@ const summarize = createStep({
   },
   outputSchema: z.string(),
 });
-
+const A = createStep({
+  id: "A",
+  execute: async ({ context, suspend }) => {
+    console.info("A");
+    // console.info("Before", context.inputData);
+    // if ("human" in context.inputData) {
+    //   console.info("Human message", context.inputData.human);
+    // } else {
+    //   await suspend({ ask: "Can you help?" });
+    // }
+    // console.info("After");
+  },
+});
+const B = createStep({
+  id: "B",
+  execute: async ({ context }) => {
+    const previous = context.getStepResult("B");
+    console.info("B", previous);
+    if (previous) throw new Error("B already ran");
+    return (previous ?? 0) + 1;
+  },
+});
+const C = createStep({
+  id: "C",
+  execute: async ({ context }) => {
+    console.info("C");
+    // const previous = context.getStepResult("C");
+    // if (previous) {
+    //   return { status: "success" };
+    // }
+    // return { status: "retry" };
+  },
+});
+const D = createStep({
+  id: "D",
+  execute: async ({ context }) => {
+    console.info("D");
+  },
+});
+const E = createStep({
+  id: "E",
+  execute: async ({ context }) => {
+    console.info("E");
+  },
+});
+const Fail = createStep({
+  id: "Fail",
+  execute: async ({ context }) => {
+    console.info("Fail");
+    throw new Error("Fail");
+  },
+});
 const workflow = new Workflow({
   name: "workflow",
   triggerSchema: z.object({
     text: z.string(),
   }),
-}).step(summarize, {
-  variables: {
-    text: { step: "trigger", path: "text" },
-  },
-});
+})
+  .step(A)
+  //   .step(Fail)
+  //   .after([A, Fail])
+  //   .step(C)
+  // .after(A)
+  .step(B)
+  .then(C)
+  // .then(D)
+  // .step(D)
+  // .after(D)
+  // .step(A, {
+  // variables: {
+  //   text: {
+  //     step: "trigger",
+  //     path: ".",
+  //   },
+  // },
+  // });
+  // .then(D)
+  // .then(B)
+  // .step(C)
+  // .then(B);
+  // .step(B)
+  // .until(async ({ context }) => context.getStepResult("B") === 3, B)
+  // .step(C)
+  // .step(D);
+  // .then(D);
+  // .after(B)
+  // .step(A, {
+  //   // when: { "B.status": "retry" },
+  //   when: async ({ context }) => context.getStepResult("B") === "foo",
+  // });
+  // .after([A, B])
+  // .step(A)
+  // .then(B)
+  // .while(async ({ context }) => context.inputData.text === "B", A)
+  //   .then(C)
+  // .until(async () => true, D)
+  // .after(B)
+  // .step(D)
+  // .then(E);
+  // .then(C);
+  // when: ({ context }) => context.inputData.text === "B",
+  // }).step(C, {
+  //   when: ({ context }) => context.inputData.text === "C",
+  // }).step(D, {
+  //   when: ({ context }) => context.inputData.text === "D",
+  // })
+
+  // .step(summarize, {
+  //   variables: {
+  //     text: { step: "trigger", path: "text" },
+  //   },
+  // })
+  .commit();
 
 const registry = new WorkflowRegistry(components.mastra);
 
@@ -54,7 +156,10 @@ export const workflowAction = registry.define(workflow, {
 
 // Can run this not in node:
 
-const runner = new WorkflowRunner(components.mastra);
+const runner = new WorkflowRunner(components.mastra, {
+  logLevel: "DEBUG",
+  workpoolLogLevel: "INFO",
+});
 
 export const startWorkflow = action({
   args: {},
@@ -65,139 +170,50 @@ export const startWorkflow = action({
     );
 
     const result = await startAsync({
-      name: "John Doe",
+      text: "John Doe",
     });
     console.debug("Workflow result", result);
     return runner.getStatus(ctx, runId);
+  },
+});
+const storage = new ConvexStorage(components.mastra);
+const mastra = new Mastra({
+  storage,
+  workflows: {
+    workflow,
   },
 });
 
 export const t = action({
   args: {},
   handler: async (ctx) => {
-    const A = createStep({
-      id: "A",
-      execute: async ({ context, suspend }) => {
-        console.info("A");
-        // console.info("Before", context.inputData);
-        // if ("human" in context.inputData) {
-        //   console.info("Human message", context.inputData.human);
-        // } else {
-        //   await suspend({ ask: "Can you help?" });
-        // }
-        // console.info("After");
-      },
-    });
-    const B = createStep({
-      id: "B",
-      execute: async ({ context }) => {
-        const previous = context.getStepResult("B");
-        console.info("B", previous);
-        if (previous) throw new Error("B already ran");
-        return (previous ?? 0) + 1;
-      },
-    });
-    const C = createStep({
-      id: "C",
-      execute: async ({ context }) => {
-        console.info("C");
-        // const previous = context.getStepResult("C");
-        // if (previous) {
-        //   return { status: "success" };
-        // }
-        // return { status: "retry" };
-      },
-    });
-    const D = createStep({
-      id: "D",
-      execute: async ({ context }) => {
-        console.info("D");
-      },
-    });
-    const E = createStep({
-      id: "E",
-      execute: async ({ context }) => {
-        console.info("E");
-      },
-    });
-    const workflow = new Workflow({
-      name: "workflow",
-    })
-      .step(A)
-      .then(B)
-      .then(C)
-      .after(A)
-      .step(B)
-      .then(C)
-      .then(D)
-      .commit();
-    // .step(D)
-    // .after(D)
-    // .step(A, {
-    // variables: {
-    //   text: {
-    //     step: "trigger",
-    //     path: ".",
-    //   },
-    // },
-    // });
-    // .then(D)
-    // .then(B)
-    // .step(C)
-    // .then(B);
-    // .step(B)
-    // .until(async ({ context }) => context.getStepResult("B") === 3, B)
-    // .step(C)
-    // .step(D);
-    // .then(D);
-    // .after(B)
-    // .step(A, {
-    //   // when: { "B.status": "retry" },
-    //   when: async ({ context }) => context.getStepResult("B") === "foo",
-    // });
-    // .after([A, B])
-    // .step(A)
-    // .then(B)
-    // .while(async ({ context }) => context.inputData.text === "B", A)
-    //   .then(C)
-    // .until(async () => true, D)
-    // .after(B)
-    // .step(D)
-    // .then(E);
-    // .then(C);
-    // when: ({ context }) => context.inputData.text === "B",
-    // }).step(C, {
-    //   when: ({ context }) => context.inputData.text === "C",
-    // }).step(D, {
-    //   when: ({ context }) => context.inputData.text === "D",
-    // }).step(E, {
-    const storage = new ConvexStorage(components.mastra);
     storage.ctx = ctx;
-    const mastra = new Mastra({
-      storage,
-      workflows: {
-        workflow,
-      },
-    });
 
-    console.debug({
-      stepGraph: workflow.stepGraph,
-      stepSubscriberGraph: workflow.stepSubscriberGraph,
-      serializedStepGraph: JSON.stringify(
-        workflow.serializedStepGraph,
-        null,
-        2
-      ),
-      serializedStepSubscriberGraph: JSON.stringify(
-        workflow.serializedStepSubscriberGraph,
-        null,
-        2
-      ),
+    // console.debug({
+    //   stepGraph: workflow.stepGraph,
+    //   stepSubscriberGraph: workflow.stepSubscriberGraph,
+    //   serializedStepGraph: JSON.stringify(
+    //     workflow.serializedStepGraph,
+    //     null,
+    //     2
+    //   ),
+    //   serializedStepSubscriberGraph: JSON.stringify(
+    //     workflow.serializedStepSubscriberGraph,
+    //     null,
+    //     2
+    //   ),
+    // });
+    // const { runId, start, resume } = workflow.createRun();
+    // const w = mastra.getWorkflow("workflow");
+    // const { runId, start, resume } = w.createRun();
+    const { runId, start, resume, startAsync } = await runner.create(
+      ctx,
+      internal.nodeRuntime.workflowAction
+    );
+    const result = await start({
+      text: "John Doe",
     });
-    const w = mastra.getWorkflow("workflow");
-    const { runId, start, resume } = w.createRun();
-    const result = await start({});
-    console.debug("Workflow result", result);
+    console.debug("Workflow result", runId, result);
     // await new Promise((resolve) => setTimeout(resolve, 1000));
     // const afterResume = await resume({
     //   stepId: "A",
