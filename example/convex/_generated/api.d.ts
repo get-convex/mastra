@@ -420,6 +420,12 @@ export declare const components: {
           { keys: any; tableName: string },
           any | null
         >;
+        loadSnapshot: FunctionReference<
+          "query",
+          "internal",
+          { runId: string; workflowName: string },
+          any
+        >;
       };
     };
     vector: {

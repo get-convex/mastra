@@ -105,6 +105,27 @@ export const batchInsert = mutation({
   returns: v.null(),
 });
 
+export const loadSnapshot = query({
+  args: {
+    runId: v.string(),
+    workflowName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const snapshot = await ctx.db
+      .query("snapshots")
+      .withIndex("runId", (q) =>
+        q.eq("runId", args.runId).eq("workflowName", args.workflowName)
+      )
+      .order("desc")
+      .first();
+    if (!snapshot) {
+      return null;
+    }
+    const { _id, _creationTime, ...rest } = snapshot;
+    return rest;
+  },
+});
+
 export const load = query({
   args: {
     tableName: v.string(),

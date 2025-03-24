@@ -422,6 +422,12 @@ export type Mounts = {
         { keys: any; tableName: string },
         any | null
       >;
+      loadSnapshot: FunctionReference<
+        "query",
+        "public",
+        { runId: string; workflowName: string },
+        any
+      >;
     };
   };
   vector: {

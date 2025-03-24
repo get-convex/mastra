@@ -66,11 +66,13 @@ const vSerializedTimestamp = v.number();
 
 export type SerializedSnapshot = Omit<
   WorkflowRow,
-  "created_at" | "updated_at" | "snapshot"
+  "created_at" | "updated_at" | "snapshot" | "workflow_name" | "run_id"
 > & {
-  created_at: SerializedTimestamp;
-  updated_at: SerializedTimestamp;
+  createdAt: SerializedTimestamp;
+  updatedAt: SerializedTimestamp;
   snapshot: string;
+  workflowName: string;
+  runId: string;
 };
 
 export type SerializedEval = Omit<EvalRow, "createdAt"> & {
@@ -150,7 +152,10 @@ export type SerializedTypeMap = {
   [TABLE_TRACES]: SerializedTrace;
 };
 
-function serializeDate(date: string | Date | number): number {
+function serializeDateOrNow(date: string | Date | number): number {
+  if (!date) {
+    return Date.now();
+  }
   if (typeof date === "number") {
     return date;
   }
@@ -174,11 +179,11 @@ export function mapMastraToSerialized<T extends TABLE_NAMES>(
     case TABLE_WORKFLOW_SNAPSHOT: {
       const row = mastraRow as MastraRowTypeMap[typeof TABLE_WORKFLOW_SNAPSHOT];
       const serialized: SerializedSnapshot = {
-        workflow_name: row.workflow_name,
-        run_id: row.run_id,
+        workflowName: row.workflow_name,
+        runId: row.run_id,
         snapshot: JSON.stringify(row.snapshot),
-        updated_at: serializeDate(row.updated_at),
-        created_at: serializeDate(row.created_at),
+        updatedAt: serializeDateOrNow(row.updated_at),
+        createdAt: serializeDateOrNow(row.created_at),
       };
       return serialized as SerializedTypeMap[T];
     }
@@ -194,7 +199,7 @@ export function mapMastraToSerialized<T extends TABLE_NAMES>(
         testInfo: row.testInfo,
         globalRunId: row.globalRunId,
         runId: row.runId,
-        createdAt: serializeDate(row.createdAt),
+        createdAt: serializeDateOrNow(row.createdAt),
       };
       return serialized as SerializedTypeMap[T];
     }
@@ -206,7 +211,7 @@ export function mapMastraToSerialized<T extends TABLE_NAMES>(
         content: serializeContent(row.content),
         role: row.role,
         type: row.type,
-        createdAt: serializeDate(row.createdAt),
+        createdAt: serializeDateOrNow(row.createdAt),
       };
       return serialized as SerializedTypeMap[T];
     }
@@ -217,8 +222,8 @@ export function mapMastraToSerialized<T extends TABLE_NAMES>(
         title: row.title,
         metadata: row.metadata,
         resourceId: row.resourceId,
-        createdAt: serializeDate(row.createdAt),
-        updatedAt: serializeDate(row.updatedAt),
+        createdAt: serializeDateOrNow(row.createdAt),
+        updatedAt: serializeDateOrNow(row.updatedAt),
       };
       return serialized as SerializedTypeMap[T];
     }
@@ -238,7 +243,7 @@ export function mapMastraToSerialized<T extends TABLE_NAMES>(
         other: row.other,
         startTime: row.startTime,
         endTime: row.endTime,
-        createdAt: serializeDate(row.createdAt),
+        createdAt: serializeDateOrNow(row.createdAt),
       };
       return serialized as SerializedTypeMap[T];
     }
@@ -329,11 +334,11 @@ export function mapSerializedToMastra<T extends TABLE_NAMES>(
       const serialized =
         row as SerializedTypeMap[typeof TABLE_WORKFLOW_SNAPSHOT];
       const workflow: WorkflowRow = {
-        workflow_name: serialized.workflow_name,
-        run_id: serialized.run_id,
+        workflow_name: serialized.workflowName,
+        run_id: serialized.runId,
         snapshot: JSON.parse(serialized.snapshot),
-        created_at: new Date(serialized.created_at),
-        updated_at: new Date(serialized.updated_at),
+        created_at: new Date(serialized.createdAt),
+        updated_at: new Date(serialized.updatedAt),
       };
       return workflow;
     }

@@ -14,9 +14,7 @@ import {
   TABLE_TRACES,
   TABLE_WORKFLOW_SNAPSHOT,
 } from "@mastra/core/storage";
-import { internal } from "../component/_generated/api.js";
 import type { api as componentApi } from "../component/_generated/api.js";
-import { ActionCtx } from "../component/_generated/server.js";
 import {
   mapSerializedToMastra,
   mapMastraToSerialized,
@@ -26,8 +24,11 @@ import {
   SerializedTrace,
 } from "../mapping/storage.js";
 import { UseApi } from "./types.js";
+import { GenericActionCtx, GenericDataModel } from "convex/server";
 
-function getApi(ctx: ActionCtx | undefined): ActionCtx {
+function getApi(
+  ctx: GenericActionCtx<GenericDataModel> | undefined
+): GenericActionCtx<GenericDataModel> {
   if (!ctx) {
     throw new Error(
       "Context not set: ensure you're specifying the agents you" +
@@ -38,7 +39,7 @@ function getApi(ctx: ActionCtx | undefined): ActionCtx {
 }
 
 export class ConvexStorage extends MastraStorage {
-  public ctx: ActionCtx | undefined;
+  public ctx: GenericActionCtx<GenericDataModel> | undefined;
   public api: UseApi<typeof componentApi>["storage"];
   constructor(
     component: UseApi<typeof componentApi>,
@@ -49,37 +50,33 @@ export class ConvexStorage extends MastraStorage {
     this.shouldCacheInit = true;
   }
 
-  async createTable({
-    tableName,
-    schema: _tableSchema,
-  }: {
+  async createTable(args: {
     tableName: TABLE_NAMES;
     schema: Record<string, StorageColumn>;
   }): Promise<void> {
-    const convexTableName = mastraToConvexTableNames[tableName];
+    const convexTableName = mastraToConvexTableNames[args.tableName];
     if (!convexTableName) {
-      throw new Error(`Unsupported table name: ${tableName}`);
+      throw new Error(`Unsupported table name: ${args.tableName}`);
     }
     // TODO: we could do more serious validation against the defined schema
     // validateTableSchema(convexTableName, tableSchema);
     return;
   }
 
-  async clearTable({ tableName }: { tableName: TABLE_NAMES }): Promise<void> {
+  async clearTable(args: { tableName: TABLE_NAMES }): Promise<void> {
     const ctx = getApi(this.ctx);
+    const tableName = mastraToConvexTableNames[args.tableName];
     await ctx.runAction(this.api.storage.clearTable, { tableName });
     return;
   }
 
-  async insert({
-    tableName,
-    record,
-  }: {
+  async insert(args: {
     tableName: TABLE_NAMES;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     record: Record<string, any>;
   }): Promise<void> {
-    const convexRecord = mapMastraToSerialized(tableName, record);
+    const convexRecord = mapMastraToSerialized(args.tableName, args.record);
+    const tableName = mastraToConvexTableNames[args.tableName];
     const ctx = getApi(this.ctx);
     await ctx.runMutation(this.api.storage.insert, {
       tableName,
@@ -88,35 +85,45 @@ export class ConvexStorage extends MastraStorage {
     return;
   }
 
-  async batchInsert({
-    tableName,
-    records,
-  }: {
+  async batchInsert(args: {
     tableName: TABLE_NAMES;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     records: Record<string, any>[];
   }): Promise<void> {
     const ctx = getApi(this.ctx);
+    const tableName = mastraToConvexTableNames[args.tableName];
     await ctx.runMutation(this.api.storage.batchInsert, {
       tableName,
-      records: records.map((record) =>
-        mapMastraToSerialized(tableName, record)
+      records: args.records.map((record) =>
+        mapMastraToSerialized(args.tableName, record)
       ),
     });
     return;
   }
 
-  async load<R>({
-    tableName,
-    keys,
-  }: {
+  async load<R>(args: {
     tableName: TABLE_NAMES;
     keys: Record<string, string>;
   }): Promise<R | null> {
     const ctx = getApi(this.ctx);
+    const tableName = mastraToConvexTableNames[args.tableName];
+    if (args.tableName === TABLE_WORKFLOW_SNAPSHOT) {
+      const { run_id, workflow_name } = args.keys;
+      if (!run_id || !workflow_name) {
+        throw new Error("Expected run_id and workflow_name to load a snapshot");
+      }
+      const snapshot = await ctx.runQuery(this.api.storage.loadSnapshot, {
+        runId: run_id,
+        workflowName: workflow_name,
+      });
+      if (!snapshot) {
+        return null;
+      }
+      return mapSerializedToMastra(args.tableName, snapshot) as R;
+    }
     return await ctx.runQuery(this.api.storage.load, {
       tableName,
-      keys,
+      keys: args.keys,
     });
   }
 
