@@ -383,34 +383,41 @@ async function checkForDone(ctx: MutationCtx, workflowId: Id<"workflows">) {
 
 export async function makeWorkpool(ctx: QueryCtx) {
   const config = await ctx.db.query("config").first();
-  const logLevel = config?.config.logLevel ?? DEFAULT_LOG_LEVEL;
+  const logLevel = config?.config.workpoolLogLevel;
   return new Workpool(components.workpool, {
     maxParallelism: config?.config.maxParallelism ?? DEFAULT_MAX_PARALLELISM,
-    logLevel: logLevel === "TRACE" ? "INFO" : logLevel,
+    logLevel,
     defaultRetryBehavior: DEFAULT_RETRY_BEHAVIOR,
   });
 }
 
 export async function updateConfig(
   ctx: MutationCtx,
-  logLevel: LogLevel
+  logLevels: {
+    logLevel: LogLevel;
+    workpoolLogLevel: LogLevel;
+  }
 ): Promise<Doc<"config">["config"]> {
   let config = await ctx.db.query("config").first();
   if (!config) {
     const configId = await ctx.db.insert("config", {
       config: {
-        logLevel,
+        ...logLevels,
         maxParallelism: DEFAULT_MAX_PARALLELISM,
       },
     });
     config = (await ctx.db.get(configId))!;
-  } else if (config.config.logLevel !== logLevel) {
-    await ctx.db.patch(config._id, {
-      config: {
-        ...config.config,
-        logLevel,
-      },
-    });
+  } else {
+    for (const [key, level] of Object.entries(logLevels)) {
+      if (config.config[key as keyof typeof config.config] !== level) {
+        await ctx.db.patch(config._id, {
+          config: {
+            ...config.config,
+            [key]: level,
+          },
+        });
+      }
+    }
   }
   return config.config;
 }

@@ -8,14 +8,20 @@ import { OpaqueIds, RunMutationCtx, RunQueryCtx, UseApi } from "./types";
 import { DEFAULT_LOG_LEVEL, LogLevel } from "../component/logger";
 import type { ActionArgs } from "../component/workflow/types";
 import { StepStatus } from "../component/workflow/types";
+import { LogLevel as WorkpoolLogLevel } from "@convex-dev/workpool";
 
 export class WorkflowRunner {
   logLevel: LogLevel;
+  workpoolLogLevel: LogLevel;
   constructor(
     public component: UseApi<typeof api>,
-    public options?: { logLevel?: LogLevel }
+    public options?: {
+      logLevel?: LogLevel;
+      workpoolLogLevel?: WorkpoolLogLevel;
+    }
   ) {
     this.logLevel = options?.logLevel ?? DEFAULT_LOG_LEVEL;
+    this.workpoolLogLevel = options?.workpoolLogLevel ?? this.logLevel;
   }
   async create(
     ctx: RunMutationCtx,
@@ -24,6 +30,7 @@ export class WorkflowRunner {
     const fnHandle = await createFunctionHandle<"action", ActionArgs, null>(fn);
     const runId = await ctx.runMutation(this.component.workflow.index.create, {
       logLevel: this.logLevel,
+      workpoolLogLevel: this.workpoolLogLevel,
       workflow: {
         fnHandle,
         fnName: getFunctionName(fn),

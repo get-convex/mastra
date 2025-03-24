@@ -10,12 +10,13 @@ import {
   vNamedBranches,
   vTarget,
 } from "./workflow/types.js";
-import { workIdValidator } from "@convex-dev/workpool";
+import { workIdValidator, vLogLevel } from "@convex-dev/workpool";
 
 export default defineSchema({
   config: defineTable({
     config: v.object({
       logLevel: logLevel,
+      workpoolLogLevel: vLogLevel,
       maxParallelism: v.number(),
     }),
   }),

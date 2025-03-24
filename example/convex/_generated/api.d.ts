@@ -494,6 +494,13 @@ export declare const components: {
           {
             logLevel: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
             workflow: { fnHandle: string; fnName: string };
+            workpoolLogLevel:
+              | "DEBUG"
+              | "TRACE"
+              | "INFO"
+              | "REPORT"
+              | "WARN"
+              | "ERROR";
           },
           any
         >;

@@ -14,13 +14,17 @@ import { assert } from "../../utils";
 export const create = mutation({
   args: {
     logLevel: logLevel,
+    workpoolLogLevel: logLevel,
     workflow: v.object({
       fnName: v.string(),
       fnHandle: v.string(),
     }),
   },
   handler: async (ctx, args) => {
-    const config = await updateConfig(ctx, args.logLevel);
+    const config = await updateConfig(ctx, {
+      logLevel: args.logLevel,
+      workpoolLogLevel: args.workpoolLogLevel,
+    });
     const console = createLogger(config.logLevel);
     console.debug("Creating machine", args);
 
