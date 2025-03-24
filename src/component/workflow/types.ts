@@ -1,4 +1,4 @@
-import { vRetryBehavior, workIdValidator } from "@convex-dev/workpool";
+import { vRetryBehavior } from "@convex-dev/workpool";
 import { Infer, ObjectType, v } from "convex/values";
 import { logLevel } from "../logger";
 
@@ -19,52 +19,15 @@ export const stepConfig = v.object({
   kind:
     // v.union(
     v.literal("action"),
-  //   v.literal("condition"),
-  //   v.literal("pseudo")
+  //   v.literal("mutation"),
+  //   v.literal("workflow"),
   // ),
-  // All steps that follow this one, pending conditions.
-  // Note: There may be multiple children with the same id, if they are
-  // conditionally executed.
-  children: v.optional(
-    v.array(
-      v.object({
-        id: vStepId,
-        // Not including this step
-        dependsOn: v.optional(v.array(vStepId)),
-        // TODO: condition: v.optional(v.any()),
-      })
-    )
-  ),
-  // We evaluate all of these in the function that has in-memory copy of the
-  // workflow.
-  // payload: v.optional(v.any()),
-  // condition: v.optional(
-  //   v.union(
-  //     v.object({
-  //       kind: v.literal("function"),
-  //       function: v.string(),
-  //     }),
-  //     v.object({
-  //       kind: v.literal("simple"),
-  //       expression: v.any(),
-  //     })
-  //   )
-  // ),
-  // variables: v.optional(v.record(v.string(), vVariableRef)),
-  // outputMappings: v.optional(v.record(v.string(), v.string())),
-  // parentStepId: v.optional(v.string()),
 });
 export type StepConfig = Infer<typeof stepConfig>;
 
 export const stepStatus = v.union(
   v.object({
     status: v.literal("waiting"),
-    // waitingOn: v.array(v.string()),
-  }),
-  v.object({
-    status: v.literal("running"),
-    resumeData: v.optional(v.record(v.string(), v.any())),
-    workpoolId: workIdValidator,
   }),
   v.object({
     status: v.literal("suspended"),
@@ -84,6 +47,23 @@ export const stepStatus = v.union(
 );
 export type StepStatus = Infer<typeof stepStatus>;
 
+export const vTarget = v.union(
+  v.object({
+    kind: v.literal("default"),
+    branch: vStepId,
+    index: v.number(),
+    id: vStepId,
+  }),
+  v.object({
+    kind: v.literal("subscriber"),
+    event: v.string(), // e.g. A&&B
+    branch: vStepId,
+    index: v.number(),
+    id: vStepId,
+  })
+);
+export type Target = Infer<typeof vTarget>;
+
 export const actionArgs = {
   logLevel,
   op: v.union(
@@ -93,25 +73,29 @@ export const actionArgs = {
     v.object({
       kind: v.literal("run"),
       runId: v.string(),
-      stepId: v.string(),
+      // Whether it's in stepGraph or stepSubscriberGraph
+      target: vTarget,
       triggerData: v.any(),
-      stepsStatus: v.record(v.string(), stepStatus),
-    }),
-    v.object({
-      kind: v.literal("findTransitions"),
-      runId: v.string(),
-      stepIds: v.array(v.string()),
-      triggerData: v.any(),
-      stepsStatus: v.record(v.string(), stepStatus),
+      resumeData: v.optional(v.record(v.string(), v.any())),
+      steps: v.record(v.string(), stepStatus),
     })
   ),
 };
 export type ActionArgs = ObjectType<typeof actionArgs>;
-export type WorkflowConfig = {
-  name: string;
-  stepConfigs: StepConfig[];
-  initialSteps: string[];
-};
+
+export const vNamedBranches = v.record(vStepId, v.array(vStepId));
+export type NamedBranches = Infer<typeof vNamedBranches>;
+
+export const vWorkflowConfig = v.object({
+  name: v.string(),
+  stepConfigs: v.record(vStepId, stepConfig),
+  defaultBranches: vNamedBranches,
+  // event -> branch -> sequence
+  // where event is like "A&&B" for subscribing to both A and B.
+  subscriberBranches: v.record(v.string(), vNamedBranches),
+});
+export type WorkflowConfig = Infer<typeof vWorkflowConfig>;
+
 export type Transitions = {
   id: string;
   state: StepStatus;

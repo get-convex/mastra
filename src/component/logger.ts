@@ -21,6 +21,7 @@ export type Logger = {
   time: (label: string) => void;
   timeEnd: (label: string) => void;
   event: (event: string, payload: Record<string, any>) => void;
+  logLevel: LogLevel;
 };
 const logLevelOrder = logLevel.members.map((l) => l.value);
 const logLevelByName = logLevelOrder.reduce(
@@ -42,7 +43,8 @@ const WARN = logLevelByName["WARN"];
 const ERROR = logLevelByName["ERROR"];
 
 export function createLogger(level?: LogLevel): Logger {
-  const levelIndex = logLevelByName[level ?? DEFAULT_LOG_LEVEL];
+  const logLevel = level ?? DEFAULT_LOG_LEVEL;
+  const levelIndex = logLevelByName[logLevel];
   if (levelIndex === undefined) {
     throw new Error(`Invalid log level: ${level}`);
   }
@@ -89,5 +91,6 @@ export function createLogger(level?: LogLevel): Logger {
         console.info(JSON.stringify(fullPayload));
       }
     },
+    logLevel,
   };
 }

@@ -8,6 +8,7 @@ import { UseApi } from "./types.js";
 import {
   Agent,
   Step,
+  StepGraph,
   StepResult,
   Workflow,
   WorkflowContext,
@@ -21,6 +22,7 @@ import {
   actionArgs,
   Transitions,
   WorkflowConfig,
+  NamedBranches,
 } from "../component/workflow/types.js";
 
 export const DEFAULT_RETRY_BEHAVIOR = {
@@ -69,11 +71,6 @@ export class WorkflowRegistry {
           console.debug("Getting config", workflow.name);
           return encodeWorkflow(workflow);
         }
-        if (op.kind === "findTransitions") {
-          console.debug("Finding transitions", workflow.name);
-          return findTransitions(console, workflow, op);
-        }
-
         for (const agent of agents) {
           const memory = agent.getMemory();
           if (memory?.vector instanceof ConvexVector) {
@@ -94,10 +91,7 @@ export class WorkflowRegistry {
 }
 
 function encodeWorkflow(workflow: Workflow): WorkflowConfig {
-  const stepConfigs: Array<StepConfig> = [];
-  const initialSteps: string[] = workflow.stepGraph.initial.map(
-    (step) => step.step.id
-  );
+  const stepConfigs: Record<string, StepConfig> = {};
 
   for (const [stepId, step] of Object.entries(workflow.steps)) {
     if (step instanceof Step) {
@@ -112,32 +106,37 @@ function encodeWorkflow(workflow: Workflow): WorkflowConfig {
           retryBehavior.initialBackoffMs = step.retryConfig.delay;
         }
       }
-      // const graphEntry = workflow.stepGraph[stepId];
-      // stepConfigs.push({
-      //   stepId,
-      //   description: step.description,
-      //   payload: step.payload,
-      //   retryBehavior,
-      //   kind: "action",
-      //   childrenIds: workflow.stepSubscriberGraph[stepId]?.initial.map((step) => step.step.id) ?? [],
-      //   condition: graphEntry.
-
-      //   inputMappings: step.inputSchema?.shape ?? {},
-      //   conditions: step.when?.map((condition) => ({
-      //     type: condition.type,
-      //     expression: condition.expression,
-      //   })),
-
-      // });
+      stepConfigs[stepId] = {
+        id: stepId,
+        description: step.description,
+        retryBehavior,
+        kind: "action",
+      };
     }
+  }
+  function sequencesFromGraph(graph: StepGraph): NamedBranches {
+    const sequences: NamedBranches = {};
+    for (const node of graph.initial) {
+      const stepId = node.step.id;
+      const children = graph[stepId] ?? [];
+      sequences[stepId] = [stepId, ...children.map((n) => n.step.id)];
+    }
+    return sequences;
+  }
+  const defaultBranches = sequencesFromGraph(workflow.stepGraph);
+  const subscriberBranches: Record<string, NamedBranches> = {};
+  for (const [event, graph] of Object.entries(workflow.stepSubscriberGraph)) {
+    subscriberBranches[event] = sequencesFromGraph(graph);
   }
 
   return {
     name: workflow.name,
     stepConfigs,
-    initialSteps,
+    defaultBranches,
+    subscriberBranches,
   };
 }
+
 async function runStep(
   console: Logger,
   workflow: Workflow,
@@ -151,7 +150,7 @@ async function runStep(
     }
     triggerData = validated.data;
   }
-  const step = workflow.steps[op.stepId] as Step<
+  const step = workflow.steps[op.target.id] as Step<
     string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     any,
@@ -160,27 +159,32 @@ async function runStep(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     any
   >;
-  const stepStatus = op.stepsStatus[op.stepId];
-  if (stepStatus.status !== "running") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const steps: Record<string, StepResult<any>> = op.steps;
+  const node = (
+    op.target.kind === "default"
+      ? workflow.stepGraph
+      : workflow.stepSubscriberGraph[op.target.event]
+  )[op.target.branch][op.target.index];
+  if (node.step.id !== op.target.id) {
     return {
       status: "failed",
-      error: `Step ${op.stepId} isn't running, it's ${stepStatus.status}`,
+      error:
+        `The step ${op.target.id} is not part of the workflow ${workflow.name} ` +
+        `in ${op.target.kind} branch ${op.target.branch} at index${op.target.index}. ` +
+        `Did you edit the workflow?`,
     };
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const steps: Record<string, StepResult<any>> = {};
-  for (const [stepId, stepStatus] of Object.entries(op.stepsStatus)) {
-    if (stepStatus.status === "running") {
-      steps[stepId] = { status: "waiting" };
-    } else {
-      steps[stepId] = stepStatus;
-    }
-  }
+  const config = node.config;
+  // TODO: handle conditionals
+  const when = config.when;
   // TODO: resolve variables
-  const resolvedData = {};
+  const requiredData = config.data;
+  const resolvedData = { ...config.data };
   let inputData = {
     ...resolvedData,
-    ...stepStatus.resumeData,
+    ...op.resumeData,
+    ...(step.payload ?? {}), // Also done by handler internally..
   };
   if (step.inputSchema) {
     const validated = step.inputSchema.safeParse(inputData);
@@ -211,7 +215,8 @@ async function runStep(
   let suspended = false;
 
   try {
-    const output = await step.execute({
+    // difference from step.execute is tracing and payload afaict
+    const output = await config.handler({
       runId: op.runId,
       context,
       suspend: async (payload: unknown) => {

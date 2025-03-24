@@ -1,4 +1,5 @@
 import {
+  DEFAULT_RETRY_BEHAVIOR,
   resultValidator,
   WorkId,
   workIdValidator,
@@ -15,8 +16,16 @@ import {
   QueryCtx,
 } from "../_generated/server";
 import { createLogger, DEFAULT_LOG_LEVEL, logLevel, LogLevel } from "../logger";
-import { ActionArgs, stepConfig, StepStatus, WorkflowConfig } from "./types";
+import {
+  ActionArgs,
+  StepStatus,
+  Target,
+  vTarget,
+  vWorkflowConfig,
+  WorkflowConfig,
+} from "./types";
 import { StepResult } from "@mastra/core";
+import { assert } from "../../utils";
 
 export const DEFAULT_MAX_PARALLELISM = 20;
 
@@ -36,160 +45,143 @@ export const configure = internalAction({
       op: { kind: "getConfig" },
       logLevel: DEFAULT_LOG_LEVEL,
     });
-    await ctx.runMutation(internal.workflow.lib.startRun, {
-      ...config,
-      workflowId: args.workflowId,
-    });
+    return config;
   },
+  returns: vWorkflowConfig,
+});
+
+export const vStartRunContext = v.object({
+  workflowId: v.id("workflows"),
+  initialData: v.any(),
 });
 
 export const startRun = internalMutation({
   args: {
-    workflowId: v.id("workflows"),
-    name: v.string(),
-    stepConfigs: v.array(stepConfig),
-    initialSteps: v.array(v.string()),
+    workId: workIdValidator,
+    result: resultValidator,
+    context: vStartRunContext,
+
+    ...vWorkflowConfig.fields,
   },
   handler: async (ctx, args) => {
+    const workflowId = args.context.workflowId;
     const console = await makeConsole(ctx);
-    const workflow = await ctx.db.get(args.workflowId);
-    if (!workflow) {
-      console.error("Workflow not found");
+    if (args.result.kind !== "success") {
+      // update workflow state to failed
+      console.error("Workflow failed to get the configuration", args.result);
+      await ctx.db.patch(workflowId, { status: "finished" });
       return;
     }
-    if (workflow.state.status !== "pending") {
-      console.error("Workflow is not pending", workflow?.state);
+    const { name, stepConfigs, defaultBranches, subscriberBranches } = args
+      .result.returnValue as WorkflowConfig;
+    const workflow = await ctx.db.get(workflowId);
+    assert(workflow);
+    if (workflow.status !== "pending") {
+      console.error("Workflow is not pending", workflow);
       return;
     }
-    const stepStateIds = await Promise.all(
-      args.stepConfigs.map(async (stepConfig) => {
-        return await ctx.db.insert("stepStates", {
-          workflowId: args.workflowId,
-          id: stepConfig.id,
-          state: { status: "waiting" },
-          generation: 0,
-          inputStateIds: [],
-        });
+    const workflowConfigId = await ctx.db.insert("workflowConfigs", {
+      name,
+      stepConfigs,
+      defaultBranches,
+      subscriberBranches,
+      triggerData: args.context.initialData,
+    });
+    const targetsToStart: Target[] = Object.entries(defaultBranches).map(
+      ([branch, steps]) => ({
+        id: steps[0],
+        kind: "default",
+        branch,
+        index: 0,
       })
     );
-    await ctx.db.patch(args.workflowId, {
-      state: {
-        status: "running",
-        name: args.name,
-        stepConfigs: args.stepConfigs,
-        stepStateIds,
-      },
-    });
-    const stepsToStart = args.initialSteps.map((s) => {
-      const stepConfig = args.stepConfigs.find((c) => c.id === s);
-      if (!stepConfig) {
-        throw new Error(`Step config ${s} for initial step not found`);
-      }
-      return stepConfig;
-    });
-
-    await startSteps(ctx, args.workflowId, stepsToStart);
+    await ctx.db.patch(workflowId, { workflowConfigId, status: "started" });
+    await startSteps(ctx, workflowId, targetsToStart, undefined);
   },
 });
 
+// Assumes that you've vetted that these targets are ready to start
+// based on subscriptions and suspension status.
 export async function startSteps(
   ctx: MutationCtx,
   workflowId: Id<"workflows">,
-  stepsToStart: { id: string; dependsOn?: string[] }[],
-  resumeData?: Record<string, unknown>
+  targetsToStart: Target[],
+  resumeData: Record<string, unknown> | undefined
 ) {
-  const toStart = new Set(stepsToStart.map((s) => s.id));
-  for (const step of stepsToStart) {
-    // TODO: check dependencies
-    // toStart.delete(step.id);
-  }
   const workflow = await ctx.db.get(workflowId);
-  if (!workflow) {
-    throw new Error("Workflow not found");
-  }
-  const workflowState = workflow.state;
-  if (workflowState.status !== "running") {
-    throw new Error("Workflow is not running");
-  }
-  const allStates = await Promise.all(
-    workflowState.stepStateIds.map(async (id) => {
+  assert(workflow);
+  assert(workflow.status === "started");
+  assert(workflow.workflowConfigId);
+  const config = await ctx.db.get(workflow.workflowConfigId);
+  assert(config);
+  const stepStates = await Promise.all(
+    workflow.stepStateIds.map(async (id) => {
       const stepState = await ctx.db.get(id);
-      if (!stepState) {
-        throw new Error("Step state not found");
-      }
-      if (!toStart.has(stepState.id)) {
-        return stepState;
-      }
-      if (stepState.state.status === "suspended") {
-        // Don't retry a suspended step until it's resumed
-        toStart.delete(stepState.id);
-        return stepState;
-      }
-      if (stepState.state.status === "running") {
-        // Don't start a step that's already running
-        toStart.delete(stepState.id);
-        return stepState;
-      }
-      const newStateId = await ctx.db.insert("stepStates", {
-        ...stepState,
-        state: {
-          status: "running",
-          workpoolId: "" as WorkId, // we'll patch this next with the workpool id
-          resumeData: resumeData,
-        },
-        generation: stepState.generation + 1,
-        inputStateIds: [], // we'll patch this next with the updated list
-      });
-      return (await ctx.db.get(newStateId))!;
+      assert(stepState);
+      return stepState;
     })
   );
-  const stepStateIds = allStates.map((s) => s._id);
-  workflowState.stepStateIds = stepStateIds;
-  await ctx.db.patch(workflowId, { state: workflowState });
-  if (toStart.size === 0) {
-    return false;
+  for (const target of targetsToStart) {
+    const stepConfig = config.stepConfigs[target.id];
+    assert(stepConfig);
+    const step = stepStates.find((s) => s.id === target.id);
+    assert(!step || step.state.status !== "suspended");
+    assert(
+      !workflow.activeBranches.find((b) => targetsEqual(b.target, target)),
+      `Trying to start the same step in the same branch: ${JSON.stringify(target)} workflowId ${workflowId}`
+    );
+    const workpoolId = await enqueueStep(
+      ctx,
+      target,
+      workflow,
+      config,
+      stepStates,
+      resumeData
+    );
+    workflow.activeBranches.push({ target, workId: workpoolId });
   }
-  for (const s of allStates) {
-    if (!toStart.has(s.id)) {
-      continue;
-    }
-    const workpoolId = await enqueueStep(ctx, s, workflow, allStates);
-    if (s.state.status !== "running") {
-      throw new Error("Step status should be running: " + s._id);
-    }
+  await ctx.db.replace(workflowId, workflow);
+}
 
-    await ctx.db.patch(s._id, {
-      inputStateIds: stepStateIds,
-      state: {
-        ...s.state,
-        workpoolId,
-      },
-    });
-  }
-  return true;
+function targetsEqual(a: Target, b: Target) {
+  return (
+    a.kind === b.kind &&
+    a.branch === b.branch &&
+    a.index === b.index &&
+    a.id === b.id &&
+    (a.kind === "subscriber" && a.event) ===
+      (b.kind === "subscriber" && b.event)
+  );
 }
 
 async function enqueueStep(
   ctx: MutationCtx,
-  step: Doc<"stepStates">,
+  target: Target,
   workflow: Doc<"workflows">,
-  allStates: Doc<"stepStates">[]
+  config: Doc<"workflowConfigs">,
+  stepStates: Doc<"stepStates">[],
+  resumeData?: Record<string, unknown>
 ): Promise<WorkId> {
-  const workflowState = workflow.state;
-  if (workflowState.status !== "running") {
-    throw new Error("Workflow is not running");
-  }
-  const {
-    config: { logLevel },
-  } = (await ctx.db.query("config").first())!;
+  const console = await makeConsole(ctx);
   const workpool = await makeWorkpool(ctx);
   const fn = workflow.fnHandle as FunctionHandle<"action", ActionArgs>;
-  const stepConfig = workflowState.stepConfigs.find((s) => s.id === step.id);
+  const stepConfig = config.stepConfigs[target.id];
   if (!stepConfig) {
     throw new Error(
-      `Step config ${step.id} not found for workflow ${workflow._id}`
+      `Step config ${target.id} not found for workflow ${workflow._id}`
     );
   }
+  const orderAtStart = Math.max(...stepStates.map((s) => s.order), 0);
+  const context: Infer<typeof stepOnCompleteContext> = {
+    workflowId: workflow._id,
+    target,
+    orderAtStart,
+  };
+  const steps = Object.fromEntries(
+    stepStates.map((stepState) => [stepState.id, stepState.state] as const)
+  );
+
+  console.debug("Enqueuing step", target, orderAtStart);
   const workpoolId = await workpool.enqueueAction(
     ctx,
     fn,
@@ -197,26 +189,17 @@ async function enqueueStep(
       op: {
         kind: "run",
         runId: workflow._id,
-        stepId: step.id,
-        triggerData: workflowState.triggerData,
-        stepsStatus: allStates.reduce(
-          (acc, s) => {
-            acc[s.id] = s.state;
-            return acc;
-          },
-          {} as Record<string, StepStatus>
-        ),
+        resumeData,
+        triggerData: config.triggerData,
+        steps,
+        target,
       },
-      logLevel,
+      logLevel: console.logLevel,
     },
     {
       retry: stepConfig.retryBehavior,
       onComplete: internal.workflow.lib.stepOnComplete,
-      context: {
-        workflowId: workflow._id,
-        stepStateId: step._id,
-        generation: step.generation,
-      } as Infer<typeof stepOnCompleteContext>,
+      context,
     }
   );
   return workpoolId;
@@ -224,8 +207,8 @@ async function enqueueStep(
 
 const stepOnCompleteContext = v.object({
   workflowId: v.id("workflows"),
-  stepStateId: v.id("stepStates"),
-  generation: v.number(),
+  target: vTarget,
+  orderAtStart: v.number(),
 });
 
 export const stepOnComplete = internalMutation({
@@ -236,118 +219,175 @@ export const stepOnComplete = internalMutation({
   },
   handler: async (ctx, args) => {
     const console = await makeConsole(ctx);
-    const step = await ctx.db.get(args.context.stepStateId);
-    if (!step) {
-      throw new Error("Step state not found");
-    }
+    const target = args.context.target;
+    let state: StepStatus;
     switch (args.result.kind) {
       case "success":
         {
           const returned = args.result.returnValue as StepResult<unknown>;
-          step.state = returned;
+          state = returned;
         }
         break;
       case "failed":
-        step.state = { status: "failed", error: args.result.error };
+        state = { status: "failed", error: args.result.error };
         break;
       case "canceled":
-        step.state = { status: "failed", error: "canceled" };
+        state = { status: "failed", error: "canceled" };
         break;
     }
-    console.debug("Step on complete", step.id, step.state, step.workflowId);
-    await ctx.db.patch(step._id, { state: step.state });
+    console.debug("Step on complete", target, state, args.context.workflowId);
     const workflow = await ctx.db.get(args.context.workflowId);
-    if (!workflow) {
-      throw new Error("Workflow not found");
-    }
-    let workflowState = workflow.state;
-    if (workflowState.status !== "running") {
-      console.error("Workflow is not running, but step is suspended", {
+    assert(workflow);
+    if (workflow.status !== "started") {
+      console.error("Workflow is not running, but step completed. Discarding", {
         workflow,
-        step,
+        target,
       });
       return;
     }
-    if (!workflowState.stepStateIds.includes(step._id)) {
-      console.warn("Step is not the latest version in the workflow", step);
-      return;
-    }
+    const stepStates = await Promise.all(
+      workflow.stepStateIds.map(async (id) => {
+        const stepState = await ctx.db.get(id);
+        assert(stepState);
+        return stepState;
+      })
+    );
+    // TODO: if the current version of our step started at a later order,
+    // don't store it? Unless that one failed and we succeeded?
 
-    if (step.state.status === "suspended") {
-      workflowState = {
-        ...workflowState,
-        status: "suspended",
-      };
-      workflow.state = workflowState;
-      await ctx.db.patch(args.context.workflowId, { state: workflowState });
-    } else if (step.state.status === "success") {
-      // we should pursue potential next steps
-      const stepConfig = workflowState.stepConfigs.find(
-        (s) => s.id === step.id
-      );
-      if (!stepConfig) {
-        throw new Error("Step config not found");
-      }
-      const childrenToCheck = stepConfig.children;
-      if (childrenToCheck && childrenToCheck.length >= 0) {
-        if (await startSteps(ctx, args.context.workflowId, childrenToCheck)) {
-          return;
-        }
-      }
+    // Assign ourselves the next order number.
+    // TODO: store the state IDs in order, so we don't have to fetch them all.
+    const order = Math.max(...stepStates.map((s) => s.order), 0) + 1;
+    const stepStateId = await ctx.db.insert("stepStates", {
+      id: target.id,
+      state,
+      orderAtStart: args.context.orderAtStart,
+      order,
+      workflowId: workflow._id,
+    });
+    const stateIdx = workflow.stepStateIds.findIndex((id) => id === target.id);
+    if (stateIdx === -1) {
+      workflow.stepStateIds.push(stepStateId);
+      stepStates.push((await ctx.db.get(stepStateId))!);
+    } else {
+      workflow.stepStateIds[stateIdx] = stepStateId;
+      stepStates[stateIdx] = (await ctx.db.get(stepStateId))!;
     }
-    await checkForDone(ctx, args.context.workflowId);
+    await ctx.db.patch(workflow._id, { stepStateIds: workflow.stepStateIds });
+
+    const activeIndex = workflow.activeBranches.findIndex((b) =>
+      targetsEqual(b.target, target)
+    );
+    const active = activeIndex !== -1;
+    if (active) {
+      workflow.activeBranches.splice(activeIndex, 1);
+    } else {
+      console.warn("Step completed but was not active", {
+        workflow,
+        target,
+      });
+    }
+    let targets: Target[] = [];
+    if (state.status === "suspended") {
+      if (!workflow.suspendedBranches.find((b) => targetsEqual(b, target))) {
+        workflow.suspendedBranches.push(target);
+      }
+    } else if (active && state.status === "success") {
+      // we should pursue potential next steps
+      targets = await findNextTargets(ctx, target, stepStates, workflow._id);
+    }
+    // Update the workflow with the new step states
+    await ctx.db.replace(args.context.workflowId, workflow);
+    if (targets.length) {
+      await startSteps(ctx, args.context.workflowId, targets, undefined);
+    } else if (active) {
+      await checkForDone(ctx, args.context.workflowId);
+    }
   },
 });
 
+async function findNextTargets(
+  ctx: MutationCtx,
+  target: Target,
+  stepStates: Doc<"stepStates">[],
+  workflowId: Id<"workflows">
+): Promise<Target[]> {
+  const targets: Target[] = [];
+  const workflow = await ctx.db.get(workflowId);
+  assert(workflow);
+  assert(workflow.workflowConfigId);
+  const config = await ctx.db.get(workflow.workflowConfigId);
+  assert(config);
+  const stepConfig = config.stepConfigs[target.id];
+  assert(stepConfig);
+
+  // Find the next step in our branch
+  const ourBranch = (
+    target.kind === "subscriber"
+      ? config.subscriberBranches[target.event]
+      : config.defaultBranches
+  )[target.branch];
+  if (target.index < ourBranch.length - 1) {
+    const nextTargetId = ourBranch[target.index + 1];
+    const nextTargetState = stepStates.find((s) => s.id === nextTargetId);
+    if (nextTargetState?.state.status !== "suspended") {
+      // If it's not suspended, we can re-evaluate it.
+      targets.push({
+        ...target,
+        index: target.index + 1,
+      });
+    }
+  }
+  // TODO: Find steps in other branches that we can benefit
+  // Find new subscriptions to kick off
+  for (const [event, branches] of Object.entries(config.subscriberBranches)) {
+    const dependencies = event.split("&&");
+    if (!dependencies.includes(target.id)) {
+      continue;
+    }
+    const valid = dependencies.every((dependency) => {
+      if (dependency === target.id) return true;
+      const stepState = stepStates.find((s) => s.id === dependency);
+      assert(stepState);
+      return stepState.state.status === "success";
+    });
+    if (valid) {
+      for (const [branch, steps] of Object.entries(branches)) {
+        targets.push({
+          kind: "subscriber",
+          event,
+          id: steps[0],
+          branch,
+          index: 0,
+        });
+      }
+    }
+  }
+  return targets;
+}
+
 async function checkForDone(ctx: MutationCtx, workflowId: Id<"workflows">) {
   const workflow = await ctx.db.get(workflowId);
-  if (!workflow) {
-    throw new Error("Workflow not found");
-  }
-  if (workflow.state.status !== "running") {
-    throw new Error("Workflow is not running");
-  }
-  const statesById = Object.fromEntries(
-    await Promise.all(
-      workflow.state.stepStateIds.map(async (id) => {
-        const state = await ctx.db.get(id);
-        if (!state) {
-          throw new Error("Step state not found");
-        }
-        return [state.id, state.state.status] as const;
-      })
-    )
-  );
-  // If all steps are done, or waiting but not
-  const allDoneOrWaiting = workflow.state.stepConfigs.every((s) =>
-    ["success", "failed", "skipped", "waiting"].includes(statesById[s.id])
-  );
-  // If there are any successful steps, make sure no children are actionable.
-  const noActionableChildren = workflow.state.stepConfigs.every(
-    (s) =>
-      !s.children ||
-      statesById[s.id] !== "success" ||
-      s.children.find((child) =>
-        ["waiting", "running", "suspended"].includes(statesById[child.id])
-      ) !== undefined
-  );
-  if (allDoneOrWaiting && noActionableChildren) {
+  assert(workflow);
+  assert(workflow.status === "started");
+  if (
+    workflow.suspendedBranches.length === 0 &&
+    workflow.activeBranches.length === 0
+  ) {
     console.debug("Workflow is done, setting to complete", workflowId);
     await ctx.db.patch(workflowId, {
-      state: {
-        ...workflow.state,
-        status: "completed",
-      },
+      status: "finished",
     });
   }
 }
 
-async function makeWorkpool(ctx: QueryCtx) {
+export async function makeWorkpool(ctx: QueryCtx) {
   const config = await ctx.db.query("config").first();
   const logLevel = config?.config.logLevel ?? DEFAULT_LOG_LEVEL;
   return new Workpool(components.workpool, {
     maxParallelism: config?.config.maxParallelism ?? DEFAULT_MAX_PARALLELISM,
     logLevel: logLevel === "TRACE" ? "INFO" : logLevel,
+    defaultRetryBehavior: DEFAULT_RETRY_BEHAVIOR,
   });
 }
 

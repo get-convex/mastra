@@ -1,7 +1,15 @@
-import { v } from "convex/values";
+import { v, Infer } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { createLogger, logLevel } from "../logger";
-import { makeConsole, startSteps, updateConfig } from "./lib";
+import {
+  makeConsole,
+  startSteps,
+  updateConfig,
+  makeWorkpool,
+  vStartRunContext,
+} from "./lib";
+import { internal } from "../_generated/api";
+import { assert } from "../../utils";
 
 export const create = mutation({
   args: {
@@ -20,9 +28,10 @@ export const create = mutation({
     const workflowId = await ctx.db.insert("workflows", {
       fnName: args.workflow.fnName,
       fnHandle: args.workflow.fnHandle,
-      state: {
-        status: "created",
-      },
+      status: "created",
+      stepStateIds: [],
+      activeBranches: [],
+      suspendedBranches: [],
     });
 
     return workflowId;
@@ -40,18 +49,34 @@ export const start = mutation({
     if (!workflow) {
       throw new Error("Workflow not found");
     }
-    if (workflow.state.status !== "created") {
+    if (workflow.status !== "created") {
       throw new Error(
-        "Workflow cannot be started, it is already " + workflow.state.status
+        "Workflow cannot be started, it is already " + workflow.status
       );
     }
     console.debug("Starting workflow", { args, workflow });
     await ctx.db.patch(args.workflowId, {
-      state: {
-        status: "pending",
-      },
+      status: "pending",
     });
-    // enqueue configuring in workpool
+    const workpool = await makeWorkpool(ctx);
+    const context: Infer<typeof vStartRunContext> = {
+      workflowId: args.workflowId,
+      initialData: args.initialData,
+    };
+    await workpool.enqueueAction(
+      ctx,
+      internal.workflow.lib.configure,
+      {
+        workflowId: args.workflowId,
+        fnHandle: workflow.fnHandle,
+        logLevel: console.logLevel,
+      },
+      {
+        retry: true,
+        onComplete: internal.workflow.lib.startRun,
+        context,
+      }
+    );
   },
 });
 
@@ -64,25 +89,18 @@ export const resume = mutation({
   handler: async (ctx, args) => {
     const console = await makeConsole(ctx);
     const workflow = await ctx.db.get(args.workflowId);
-    if (!workflow) {
-      throw new Error("Workflow not found");
-    }
-    const workflowState = workflow.state;
-    if (workflowState.status === "suspended") {
-      await ctx.db.patch(args.workflowId, {
-        state: { ...workflowState, status: "running" },
-      });
-    } else if (workflowState.status !== "running") {
-      throw new Error("Workflow is not running or suspended");
-    }
+    assert(workflow);
+    assert(workflow.status === "started");
+    assert(workflow.workflowConfigId);
     console.debug("Resuming workflow", args);
-    const stepConfig = workflowState.stepConfigs.find(
-      (s) => s.id === args.stepId
+    const workflowConfig = await ctx.db.get(workflow.workflowConfigId);
+    assert(workflowConfig);
+    const stepConfig = workflowConfig.stepConfigs[args.stepId];
+    assert(stepConfig, `Step config ${args.stepId} to resume not found`);
+    const targets = workflow.suspendedBranches.filter(
+      (t) => t.id === args.stepId
     );
-    if (!stepConfig) {
-      throw new Error(`Step config ${args.stepId} to resumenot found`);
-    }
-    await startSteps(ctx, args.workflowId, [stepConfig], args.resumeData);
+    await startSteps(ctx, args.workflowId, targets, args.resumeData);
   },
 });
 
@@ -95,29 +113,24 @@ export const status = query({
     if (!workflow) {
       return null;
     }
-    const workflowState = workflow.state;
-    if (workflowState.status === "created") {
-      return {
-        status: "created",
-      };
-    } else if (workflowState.status === "pending") {
-      return {
-        status: "pending",
-      };
+    if (workflow.status === "created") {
+      return { status: "created" };
+    } else if (workflow.status === "pending") {
+      return { status: "pending" };
     }
     const stepStates = await Promise.all(
-      workflowState.stepStateIds.map(async (stepStateId) => {
+      workflow.stepStateIds.map(async (stepStateId) => {
         const stepState = await ctx.db.get(stepStateId);
         if (!stepState) {
           return null;
         }
-        const { state, generation, id } = stepState;
-        return { state, generation, stepId: id };
+        const { state, id } = stepState;
+        return { state, stepId: id };
       })
     );
-    const { name, status } = workflowState;
+    const { activeBranches, status } = workflow;
 
-    return { name, status, stepStates };
+    return { status, stepStates, activeBranches };
   },
 });
 

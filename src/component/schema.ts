@@ -3,14 +3,14 @@ import storageTables from "./storage/tables.js";
 import { v } from "convex/values";
 import { logLevel } from "./logger.js";
 import vectorTables from "./vector/tables.js";
-import { stepConfig, stepStatus, vStepId } from "./workflow/types.js";
-
-const vWorkflowConfiguredState = {
-  name: v.string(),
-  triggerData: v.optional(v.record(v.string(), v.any())),
-  stepConfigs: v.array(stepConfig),
-  stepStateIds: v.array(v.id("stepStates")),
-};
+import {
+  stepConfig,
+  stepStatus,
+  vStepId,
+  vNamedBranches,
+  vTarget,
+} from "./workflow/types.js";
+import { workIdValidator } from "@convex-dev/workpool";
 
 export default defineSchema({
   config: defineTable({
@@ -24,26 +24,30 @@ export default defineSchema({
   workflows: defineTable({
     fnName: v.string(),
     fnHandle: v.string(),
-    state: v.union(
+    workflowConfigId: v.optional(v.id("workflowConfigs")),
+    // Denormalized list of the latest version of each step.
+    // TODO: use distinct on "id" after eq on workflowId, descending order
+    stepStateIds: v.array(v.id("stepStates")),
+    activeBranches: v.array(
       v.object({
-        status: v.literal("created"),
-      }),
-      v.object({
-        status: v.literal("pending"),
-      }),
-      v.object({
-        status: v.literal("running"),
-        ...vWorkflowConfiguredState,
-      }),
-      v.object({
-        status: v.literal("suspended"),
-        ...vWorkflowConfiguredState,
-      }),
-      v.object({
-        status: v.literal("completed"),
-        ...vWorkflowConfiguredState,
+        target: vTarget,
+        workId: workIdValidator,
       })
     ),
+    suspendedBranches: v.array(vTarget),
+    status: v.union(
+      v.literal("created"),
+      v.literal("pending"),
+      v.literal("started"),
+      v.literal("finished")
+    ),
+  }),
+  workflowConfigs: defineTable({
+    name: v.string(),
+    triggerData: v.optional(v.record(v.string(), v.any())),
+    stepConfigs: v.record(vStepId, stepConfig),
+    defaultBranches: vNamedBranches,
+    subscriberBranches: v.record(v.string(), vNamedBranches),
   }),
 
   // One per step execution, updated during workflow execution.
@@ -51,9 +55,9 @@ export default defineSchema({
     workflowId: v.id("workflows"),
     id: vStepId,
     state: stepStatus,
-    // Each time we loop back to a step, we make a new state.
-    generation: v.number(),
-    // So we can time travel to see what this was based on.
-    inputStateIds: v.array(v.id("stepStates")),
-  }).index("workflowId_id_iteration", ["workflowId", "id", "generation"]),
+    // Each state stored for a given workflowId is given the next number.
+    order: v.number(),
+    // The sequence number when it started.
+    orderAtStart: v.number(),
+  }).index("workflowId_id_order", ["workflowId", "id", "order"]),
 });
