@@ -72,7 +72,7 @@ export class WorkflowRunner {
         return null;
       }
       // TODO: should this return if it's suspended?
-      if (["completed", "failed"].includes(status.status)) {
+      if (status.status === "finished") {
         return status;
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -83,6 +83,7 @@ export class WorkflowRunner {
       workflowId: runId,
     });
     if (!status) {
+      console.debug("Workflow not found", runId);
       return null;
     }
     return {

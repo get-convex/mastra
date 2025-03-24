@@ -38,7 +38,7 @@ export const stepStatus = v.union(
   }),
   v.object({
     status: v.literal("success"),
-    output: v.any(),
+    output: v.optional(v.any()),
   }),
   v.object({
     status: v.literal("failed"),

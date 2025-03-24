@@ -79,7 +79,7 @@
     }
   },
   "peerDependencies": {
-    "@convex-dev/workpool": "^0.2.4",
+    "@convex-dev/workpool": "^0.2.5",
     "@mastra/core": "^0.6.3",
     "ai": "^4.2.0",
     "convex": ">=1.17.0 <1.25.0",

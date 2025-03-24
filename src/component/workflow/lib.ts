@@ -26,6 +26,7 @@ import {
 } from "./types";
 import { StepResult } from "@mastra/core";
 import { assert } from "../../utils";
+import { validate } from "convex-helpers/validators";
 
 export const DEFAULT_MAX_PARALLELISM = 20;
 
@@ -60,8 +61,6 @@ export const startRun = internalMutation({
     workId: workIdValidator,
     result: resultValidator,
     context: vStartRunContext,
-
-    ...vWorkflowConfig.fields,
   },
   handler: async (ctx, args) => {
     const workflowId = args.context.workflowId;
@@ -72,8 +71,13 @@ export const startRun = internalMutation({
       await ctx.db.patch(workflowId, { status: "finished" });
       return;
     }
-    const { name, stepConfigs, defaultBranches, subscriberBranches } = args
-      .result.returnValue as WorkflowConfig;
+    const config = args.result.returnValue;
+    if (!validate(vWorkflowConfig, config)) {
+      console.error("Workflow failed to get the configuration", args.result);
+      await ctx.db.patch(workflowId, { status: "finished" });
+      return;
+    }
+    const { name, stepConfigs, defaultBranches, subscriberBranches } = config;
     const workflow = await ctx.db.get(workflowId);
     assert(workflow);
     if (workflow.status !== "pending") {
@@ -334,6 +338,7 @@ async function findNextTargets(
       // If it's not suspended, we can re-evaluate it.
       targets.push({
         ...target,
+        id: nextTargetId,
         index: target.index + 1,
       });
     }

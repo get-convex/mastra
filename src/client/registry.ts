@@ -9,6 +9,7 @@ import {
   Agent,
   Step,
   StepGraph,
+  StepNode,
   StepResult,
   Workflow,
   WorkflowContext,
@@ -23,7 +24,9 @@ import {
   Transitions,
   WorkflowConfig,
   NamedBranches,
+  Target,
 } from "../component/workflow/types.js";
+import { assert } from "../utils.js";
 
 export const DEFAULT_RETRY_BEHAVIOR = {
   maxAttempts: 5,
@@ -160,19 +163,14 @@ async function runStep(
     any
   >;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const steps: Record<string, StepResult<any>> = op.steps;
-  const node = (
-    op.target.kind === "default"
-      ? workflow.stepGraph
-      : workflow.stepSubscriberGraph[op.target.event]
-  )[op.target.branch][op.target.index];
-  if (node.step.id !== op.target.id) {
+  const steps = op.steps as Record<string, StepResult<any>>;
+  let node: StepNode;
+  try {
+    node = lookupNode(workflow, op.target);
+  } catch (e) {
     return {
       status: "failed",
-      error:
-        `The step ${op.target.id} is not part of the workflow ${workflow.name} ` +
-        `in ${op.target.kind} branch ${op.target.branch} at index${op.target.index}. ` +
-        `Did you edit the workflow?`,
+      error: e instanceof Error ? e.message : "Unknown error",
     };
   }
   const config = node.config;
@@ -189,6 +187,11 @@ async function runStep(
   if (step.inputSchema) {
     const validated = step.inputSchema.safeParse(inputData);
     if (!validated.success) {
+      console.warn(
+        `Input data for step ${step.id} failed validation: ${JSON.stringify(
+          inputData
+        )}\n${validated.error.message}`
+      );
       return { status: "failed", error: validated.error.message };
     }
     inputData = validated.data;
@@ -204,6 +207,9 @@ async function runStep(
         return triggerData;
       }
       const stepResult = steps[stepId];
+      if (!stepResult) {
+        return undefined;
+      }
       if (stepResult.status === "success") {
         return stepResult.output;
       }
@@ -244,12 +250,31 @@ async function runStep(
   }
 }
 
-function findTransitions(
-  console: Logger,
-  workflow: Workflow,
-  op: ActionArgs["op"] & { kind: "findTransitions" }
-): Transitions[] {
-  return [];
+function lookupNode(workflow: Workflow, target: Target): StepNode {
+  const source =
+    target.kind === "default"
+      ? workflow.stepGraph
+      : workflow.stepSubscriberGraph[target.event];
+  let node: StepNode | undefined;
+  if (target.index === 0) {
+    node = source.initial.find((n) => n.step.id === target.id);
+  } else {
+    node = source[target.branch][target.index - 1];
+  }
+  assert(
+    node,
+    `The step ${target.id} is not part of the workflow ${workflow.name} ` +
+      `in ${target.kind} branch ${target.branch} at index ${target.index}. ` +
+      `Did you edit the workflow?`
+  );
+  assert(
+    node.step.id === target.id,
+    `The step ${target.id} isn't where it's supposed to be in the workflow "${workflow.name}" ` +
+      `in ${target.kind} branch ${target.branch} at index ${target.index}. ` +
+      `Instead, that location has the step ${node.step.id}.` +
+      `Did you edit the workflow?`
+  );
+  return node;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

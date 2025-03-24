@@ -50,18 +50,13 @@ export const start = mutation({
   handler: async (ctx, args) => {
     const console = await makeConsole(ctx);
     const workflow = await ctx.db.get(args.workflowId);
-    if (!workflow) {
-      throw new Error("Workflow not found");
-    }
-    if (workflow.status !== "created") {
-      throw new Error(
-        "Workflow cannot be started, it is already " + workflow.status
-      );
-    }
+    assert(workflow, "Workflow not found");
+    assert(
+      workflow.status === "created",
+      "Workflow is not created, it is " + workflow.status
+    );
     console.debug("Starting workflow", { args, workflow });
-    await ctx.db.patch(args.workflowId, {
-      status: "pending",
-    });
+    await ctx.db.patch(args.workflowId, { status: "pending" });
     const workpool = await makeWorkpool(ctx);
     const context: Infer<typeof vStartRunContext> = {
       workflowId: args.workflowId,
@@ -113,14 +108,16 @@ export const status = query({
     workflowId: v.id("workflows"),
   },
   handler: async (ctx, args) => {
+    const console = await makeConsole(ctx);
     const workflow = await ctx.db.get(args.workflowId);
     if (!workflow) {
+      console.debug("Workflow not found", args.workflowId);
       return null;
     }
     if (workflow.status === "created") {
-      return { status: "created" };
+      return { status: "created" as const };
     } else if (workflow.status === "pending") {
-      return { status: "pending" };
+      return { status: "pending" as const };
     }
     const stepStates = await Promise.all(
       workflow.stepStateIds.map(async (stepStateId) => {
