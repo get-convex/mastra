@@ -14,7 +14,9 @@ export const startWorkflow = action({
     );
 
     const result = await startAsync({
-      name: "John Doe",
+      triggerData: {
+        name: "John Doe",
+      },
     });
     console.debug("Workflow result", result);
     return runner.getStatus(ctx, runId);

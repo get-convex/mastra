@@ -170,7 +170,7 @@ export const startWorkflow = action({
     );
 
     const result = await startAsync({
-      text: "John Doe",
+      triggerData: { text: "John Doe" },
     });
     console.debug("Workflow result", result);
     return runner.getStatus(ctx, runId);
@@ -204,14 +204,14 @@ export const t = action({
     //   ),
     // });
     // const { runId, start, resume } = workflow.createRun();
-    // const w = mastra.getWorkflow("workflow");
-    // const { runId, start, resume } = w.createRun();
-    const { runId, start, resume, startAsync } = await runner.create(
-      ctx,
-      internal.nodeRuntime.workflowAction
-    );
+    const w = mastra.getWorkflow("workflow");
+    const { runId, start, resume } = w.createRun();
+    // const { runId, start, resume, startAsync } = await runner.create(
+    //   ctx,
+    //   internal.nodeRuntime.workflowAction
+    // );
     const result = await start({
-      text: "John Doe",
+      triggerData: { text: "John Doe" },
     });
     console.debug("Workflow result", runId, result);
     // await new Promise((resolve) => setTimeout(resolve, 1000));

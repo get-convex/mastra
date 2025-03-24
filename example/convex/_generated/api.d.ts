@@ -513,7 +513,7 @@ export declare const components: {
         start: FunctionReference<
           "mutation",
           "internal",
-          { initialData?: any; workflowId: string },
+          { triggerData?: any; workflowId: string },
           any
         >;
         status: FunctionReference<

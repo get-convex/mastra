@@ -43,14 +43,22 @@ export class WorkflowRunner {
       resume: this.resume.bind(this, ctx, runId),
     };
   }
-  async startAsync(ctx: RunMutationCtx, runId: string, initialData: unknown) {
+  async startAsync(
+    ctx: RunMutationCtx,
+    runId: string,
+    opts: { triggerData?: unknown }
+  ) {
     await ctx.runMutation(this.component.workflow.index.start, {
       workflowId: runId,
-      initialData,
+      triggerData: opts.triggerData,
     });
   }
-  async start(ctx: RunMutationCtx, runId: string, initialData: unknown) {
-    await this.startAsync(ctx, runId, initialData);
+  async start(
+    ctx: RunMutationCtx,
+    runId: string,
+    opts: { triggerData?: unknown }
+  ) {
+    await this.startAsync(ctx, runId, opts);
     return await this.waitForResult(ctx, runId);
   }
   async resume(

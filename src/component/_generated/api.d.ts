@@ -506,7 +506,7 @@ export type Mounts = {
       start: FunctionReference<
         "mutation",
         "public",
-        { initialData?: any; workflowId: string },
+        { triggerData?: any; workflowId: string },
         any
       >;
       status: FunctionReference<"query", "public", { workflowId: string }, any>;

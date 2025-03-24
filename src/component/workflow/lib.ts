@@ -53,7 +53,7 @@ export const configure = internalAction({
 
 export const vStartRunContext = v.object({
   workflowId: v.id("workflows"),
-  initialData: v.any(),
+  triggerData: v.optional(v.any()),
 });
 
 export const startRun = internalMutation({
@@ -89,7 +89,7 @@ export const startRun = internalMutation({
       stepConfigs,
       defaultBranches,
       subscriberBranches,
-      triggerData: args.context.initialData,
+      triggerData: args.context.triggerData,
     });
     const targetsToStart: Target[] = Object.entries(defaultBranches).map(
       ([branch, steps]) => ({

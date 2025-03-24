@@ -45,7 +45,7 @@ export const create = mutation({
 export const start = mutation({
   args: {
     workflowId: v.id("workflows"),
-    initialData: v.optional(v.any()),
+    triggerData: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const console = await makeConsole(ctx);
@@ -60,7 +60,7 @@ export const start = mutation({
     const workpool = await makeWorkpool(ctx);
     const context: Infer<typeof vStartRunContext> = {
       workflowId: args.workflowId,
-      initialData: args.initialData,
+      triggerData: args.triggerData,
     };
     await workpool.enqueueAction(
       ctx,
