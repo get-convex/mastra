@@ -5,6 +5,7 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "convex dev --live-component-sources --typecheck-components",
+    "dev:yolo": "convex dev --local --live-component-sources --typecheck disable",
     "dev:frontend": "vite",
     "logs": "convex logs",
     "lint": "tsc -p convex && eslint convex"
