@@ -1,4 +1,4 @@
-import { action, query } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 import { WorkflowRunner } from "@convex-dev/mastra";
 import { v } from "convex/values";
@@ -13,13 +13,15 @@ export const startWorkflow = action({
       internal.nodeRuntime.workflowAction
     );
 
-    const result = await startAsync({
+    await startAsync({
       triggerData: {
         name: "John Doe",
+        nested: {
+          text: "Nested text",
+        },
       },
     });
-    console.debug("Workflow result", result);
-    return runner.getStatus(ctx, runId);
+    return runner.waitForResult(ctx, runId);
   },
 });
 

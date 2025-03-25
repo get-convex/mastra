@@ -30,7 +30,7 @@ const summarize = createStep({
     // const result = await agent.generate(context.inputData.text);
     // await suspend({ ask: "Can you help?" });
     // return result.text;
-    return "Hello, world!";
+    return "Hello, world!" + context.inputData.text;
   },
   outputSchema: z.string(),
 });
@@ -90,6 +90,9 @@ const workflow = new Workflow({
   name: "workflow",
   triggerSchema: z.object({
     text: z.string(),
+    nested: z.object({
+      text: z.string(),
+    }),
   }),
 })
   .step(A)
@@ -102,14 +105,6 @@ const workflow = new Workflow({
   // .then(D)
   // .step(D)
   // .after(D)
-  // .step(A, {
-  // variables: {
-  //   text: {
-  //     step: "trigger",
-  //     path: ".",
-  //   },
-  // },
-  // });
   // .then(D)
   // .then(B)
   // .step(C)
@@ -141,11 +136,11 @@ const workflow = new Workflow({
   //   when: ({ context }) => context.inputData.text === "D",
   // })
 
-  // .step(summarize, {
-  //   variables: {
-  //     text: { step: "trigger", path: "text" },
-  //   },
-  // })
+  .step(summarize, {
+    variables: {
+      text: { step: "trigger", path: "nested.text" },
+    },
+  })
   .commit();
 
 const registry = new WorkflowRegistry(components.mastra);
@@ -164,16 +159,16 @@ const runner = new WorkflowRunner(components.mastra, {
 export const startWorkflow = action({
   args: {},
   handler: async (ctx) => {
-    const { runId, startAsync, start, resume } = await runner.create(
+    const { runId } = await runner.create(
       ctx,
       internal.nodeRuntime.workflowAction
     );
-    const result = await start({
-      triggerData: { text: "John Doe" },
+    const result = await runner.startAsync(ctx, runId, {
+      triggerData: { text: "John Doe", nested: { text: "Nested text" } },
     });
     console.debug("Workflow result", runId, result);
 
-    return [result, await runner.getStatus(ctx, runId)];
+    return await runner.waitForResult(ctx, runId);
   },
 });
 const storage = new ConvexStorage(components.mastra);
@@ -204,16 +199,17 @@ export const t = action({
     //   ),
     // });
     // const { runId, start, resume } = workflow.createRun();
-    const w = mastra.getWorkflow("workflow");
-    const { runId, start, resume } = w.createRun();
-    // const { runId, start, resume, startAsync } = await runner.create(
-    //   ctx,
-    //   internal.nodeRuntime.workflowAction
-    // );
-    const result = await start({
-      triggerData: { text: "John Doe" },
+    // const w = mastra.getWorkflow("workflow");
+    // const { runId, start, resume } = w.createRun();
+    const { runId, startAsync } = await runner.create(
+      ctx,
+      internal.nodeRuntime.workflowAction
+    );
+    await startAsync({
+      triggerData: { text: "John Doe", nested: { text: "Nested text" } },
     });
-    console.debug("Workflow result", runId, result);
+    return runner.waitForResult(ctx, runId);
+    // console.debug("Workflow result", runId, result);
     // await new Promise((resolve) => setTimeout(resolve, 1000));
     // const afterResume = await resume({
     //   stepId: "A",
@@ -222,6 +218,6 @@ export const t = action({
     //   },
     // });
     // console.debug("After resume", afterResume);
-    return JSON.stringify(result, null, 2);
+    // return JSON.stringify(result, null, 2);
   },
 });
