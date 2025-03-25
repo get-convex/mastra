@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "convex dev --live-component-sources --typecheck-components",
     "dev:yolo": "convex dev --local --live-component-sources --typecheck disable",
+    "dev:mastra": "mastra dev",
     "dev:frontend": "vite",
     "logs": "convex logs",
     "lint": "tsc -p convex && eslint convex"
@@ -13,6 +14,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^1.3.0",
     "@convex-dev/mastra": "file:..",
+    "@types/node": "^22.13.13",
     "convex": "file:../node_modules/convex",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -29,6 +31,7 @@
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
+    "mastra": "^0.4.3",
     "typescript": "^5.5.0",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1"
