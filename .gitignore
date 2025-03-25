@@ -16,3 +16,4 @@ package-lock.json
 react/package.json
 # npm pack output
 *.tgz
+.env.development
