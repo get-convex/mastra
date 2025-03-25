@@ -1,4 +1,3 @@
-"use node";
 export * as libsql from "@libsql/client";
 export * from "./storage.js";
 
@@ -7,10 +6,12 @@ import type { api } from "../component/_generated/api.js";
 import { UseApi } from "./types.js";
 import {
   Agent,
+  getStepResult,
   Step,
   StepGraph,
   StepNode,
   StepResult,
+  VariableReference,
   Workflow,
   WorkflowContext,
 } from "@mastra/core";
@@ -21,7 +22,6 @@ import {
   StepConfig,
   ActionArgs,
   actionArgs,
-  Transitions,
   WorkflowConfig,
   NamedBranches,
   Target,
@@ -176,10 +176,13 @@ async function runStep(
   const config = node.config;
   // TODO: handle conditionals
   const when = config.when;
-  // TODO: resolve variables
-  const requiredData = config.data;
-  const resolvedData = { ...config.data };
+  const resolvedData = inputFromVariables({
+    variables: config.data,
+    triggerData,
+    steps,
+  });
   let inputData = {
+    // resumedEvent: ..?
     ...resolvedData,
     ...op.resumeData,
     ...(step.payload ?? {}), // Also done by handler internally..
@@ -224,6 +227,8 @@ async function runStep(
     // difference from step.execute is tracing and payload afaict
     const output = await config.handler({
       runId: op.runId,
+      // threadId: op.threadId, ?
+      // resourceId: op.resourceId, ?
       context,
       suspend: async (payload: unknown) => {
         console.debug(`Suspending ${step.id} run ${op.runId}`, payload);
@@ -248,6 +253,68 @@ async function runStep(
     // If it fails, the workpool will handle retries and final failure
     throw e;
   }
+}
+
+// Resolves the .step(foo, {variables: ...}) variables from steps data.
+// Note: This function mostly cribbed from `@mastra/core` package. ISC /EL2 licensed.
+// If it were factored out there I'd use it directly, but it's a private function atm.
+function inputFromVariables(args: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  variables: Record<string, VariableReference<any, any>>;
+  triggerData: unknown;
+  steps: Record<string, StepResult<unknown>>;
+}): Record<string, unknown> {
+  const data = Object.fromEntries(
+    Object.entries(args.variables).map(([key, variable]) => {
+      const sourceData =
+        variable.step === "trigger"
+          ? args.triggerData
+          : getStepResult(args.steps[variable.step.id]);
+
+      if (!sourceData && variable.step !== "trigger") {
+        return [key, undefined];
+      }
+
+      // If path is empty or '.', return the entire source data
+      const value =
+        !variable.path || variable.path === "."
+          ? sourceData
+          : getValueFromPath(sourceData, variable.path);
+
+      return [key, value];
+    })
+  );
+
+  return data;
+}
+
+// Looks up things by:
+// - dot notation a.b.c
+// - bracket notation a[b][c]
+// - single bracket notation a[b]
+// - single quote notation a['b']
+// - double quote notation a["b"]
+// - array notation a[1]
+// - mixed notations a.b['c']
+// It fails on: escaped and mixed quotes like a.b["c'"] or a.b['c\'c']
+// Note: This function mostly cribbed from `raddash` package. MIT licensed.
+function getValueFromPath(value: unknown, path: string) {
+  const segments = path.split(/[.[\]]/g);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let current: any = value;
+  for (let key of segments) {
+    if (current === null || current === undefined) return undefined;
+    if (key.startsWith("'") || key.startsWith('"')) {
+      key = key.slice(1);
+    }
+    if (key.endsWith("'") || key.endsWith('"')) {
+      key = key.slice(0, -1);
+    }
+    if (key.trim() === "") continue;
+    if (typeof current !== "object" || current === null) return undefined;
+    current = current[key];
+  }
+  return current;
 }
 
 function lookupNode(workflow: Workflow, target: Target): StepNode {

@@ -99,6 +99,8 @@ export const resume = mutation({
     const targets = workflow.suspendedBranches.filter(
       (t) => t.id === args.stepId
     );
+    // TODO: add resumeData to the output of the step.. strange but that's what Mastra does.
+    // workflows/workflow-instance.ts:490
     await startSteps(ctx, args.workflowId, targets, args.resumeData);
   },
 });
