@@ -149,6 +149,10 @@ See more example usage in [example.ts](./example/convex/nodeRuntime.ts).
 1. You can't currently register workflows dynamically. The action you register
    needs to exist at import time and the implementation needs a reference to
    the in-memory workflow you create.
+1. For local development, you need to run `mastra dev` in Node 20, but
+   `convex dev` in Node 18.
+   If you see issues about syscalls at import time, try using the cloud dev
+   environment instead.
 
 ### TODO before it's out of alpha
 
