@@ -1,4 +1,3 @@
-"use node";
 import type { MessageType, StorageThreadType } from "@mastra/core";
 import type {
   EvalRow,
@@ -25,6 +24,7 @@ import {
 } from "../mapping/storage.js";
 import { UseApi } from "./types.js";
 import { GenericActionCtx, GenericDataModel } from "convex/server";
+export { InMemoryStorage } from "./in-memory.js";
 
 function getApi(
   ctx: GenericActionCtx<GenericDataModel> | undefined

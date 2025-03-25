@@ -58,6 +58,30 @@
         "default": "./dist/commonjs/client/registry.js"
       }
     },
+    "./vector": {
+      "import": {
+        "@convex-dev/component-source": "./src/client/vector.ts",
+        "types": "./dist/esm/client/vector.d.ts",
+        "default": "./dist/esm/client/vector.js"
+      },
+      "require": {
+        "@convex-dev/component-source": "./src/client/vector.ts",
+        "types": "./dist/commonjs/client/vector.d.ts",
+        "default": "./dist/commonjs/client/vector.js"
+      }
+    },
+    "./storage": {
+      "import": {
+        "@convex-dev/component-source": "./src/client/storage.ts",
+        "types": "./dist/esm/client/storage.d.ts",
+        "default": "./dist/esm/client/storage.js"
+      },
+      "require": {
+        "@convex-dev/component-source": "./src/client/storage.ts",
+        "types": "./dist/commonjs/client/storage.d.ts",
+        "default": "./dist/commonjs/client/storage.js"
+      }
+    },
     "./react": {
       "import": {
         "@convex-dev/component-source": "./src/react/index.ts",
