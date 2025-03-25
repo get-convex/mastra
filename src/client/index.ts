@@ -4,7 +4,13 @@ import {
   getFunctionName,
 } from "convex/server";
 import type { api } from "../component/_generated/api";
-import { OpaqueIds, RunMutationCtx, RunQueryCtx, UseApi } from "./types";
+import {
+  OpaqueIds,
+  RunActionCtx,
+  RunMutationCtx,
+  RunQueryCtx,
+  UseApi,
+} from "./types";
 import { DEFAULT_LOG_LEVEL, LogLevel } from "../component/logger";
 import type { ActionArgs } from "../component/workflow/types";
 import { StepStatus } from "../component/workflow/types";
@@ -13,6 +19,15 @@ import { LogLevel as WorkpoolLogLevel } from "@convex-dev/workpool";
 export class WorkflowRunner {
   logLevel: LogLevel;
   workpoolLogLevel: LogLevel;
+  /**
+   * WorkflowRunner allows you to run workflows in Convex, that you defined
+   * with the WorkflowRegistry.define() method.
+   * This can be created and used in either the default or "node" runtime.
+   *
+   * @param component - The component to use, e.g. components.mastra
+   *   imported like `import { components } from "./_generated/api"`.
+   * @param options - Optional options.
+   */
   constructor(
     public component: UseApi<typeof api>,
     public options?: {
@@ -23,6 +38,13 @@ export class WorkflowRunner {
     this.logLevel = options?.logLevel ?? DEFAULT_LOG_LEVEL;
     this.workpoolLogLevel = options?.workpoolLogLevel ?? this.logLevel;
   }
+  /**
+   * Creates but does not start a new workflow run.
+   * @param ctx - The context of the mutation or action.
+   * @param fn - The function reference to the workflow. Like api.foo.bar.
+   *   This is what you get from the WorkflowRegistry.define() call.
+   * @returns An object with the run id and start and resume functions.
+   */
   async create(
     ctx: RunMutationCtx,
     fn: FunctionReference<"action", "internal">
@@ -38,11 +60,18 @@ export class WorkflowRunner {
     });
     return {
       runId,
-      start: this.start.bind(this, ctx, runId),
       startAsync: this.startAsync.bind(this, ctx, runId),
-      resume: this.resume.bind(this, ctx, runId),
+      resumeAsync: this.resumeAsync.bind(this, ctx, runId),
     };
   }
+  /**
+   * Starts the workflow asynchronously. You can have it write to your tables
+   * for reactivity, or you can subscribe to the results with getStatus, or
+   * poll for results with waitForResult.
+   * @param ctx - The context of the mutation or action.
+   * @param runId - The id of the run from {@link create}.
+   * @param opts - Any trigger data (initial input to the workflow).
+   */
   async startAsync(
     ctx: RunMutationCtx,
     runId: string,
@@ -53,15 +82,28 @@ export class WorkflowRunner {
       triggerData: opts.triggerData,
     });
   }
+  /**
+   * Starts the workflow and waits for it to finish (via {@link waitForResult}).
+   * @param ctx - The context of the action.
+   * @param runId - The id of the run from {@link create}.
+   * @param opts - Any trigger data (initial input to the workflow).
+   * @returns The result of the workflow.
+   */
   async start(
-    ctx: RunMutationCtx,
+    ctx: RunActionCtx,
     runId: string,
     opts: { triggerData?: unknown }
   ) {
     await this.startAsync(ctx, runId, opts);
     return await this.waitForResult(ctx, runId);
   }
-  async resume(
+  /**
+   * Resumes a workflow from a suspended step.
+   * @param ctx - The context of the mutation or action.
+   * @param runId - The id of the run from {@link create}.
+   * @param resumeArgs - The step id and context to resume from.
+   */
+  async resumeAsync(
     ctx: RunMutationCtx,
     runId: string,
     resumeArgs: { stepId: string; context: unknown }
@@ -72,7 +114,31 @@ export class WorkflowRunner {
       resumeData: resumeArgs.context,
     });
   }
-  async waitForResult(ctx: RunQueryCtx, runId: string) {
+  /**
+   * Resumes a workflow from a suspended step and waits for it to finish.
+   * @param ctx - The context of the action.
+   * @param runId - The id of the run from {@link create}.
+   * @param resumeArgs - The step id and context to resume from.
+   * @returns The result of the workflow.
+   */
+  async resume(
+    ctx: RunActionCtx,
+    runId: string,
+    resumeArgs: { stepId: string; context: unknown }
+  ) {
+    await this.resumeAsync(ctx, runId, resumeArgs);
+    return await this.waitForResult(ctx, runId);
+  }
+  /**
+   * Polls for the result of a workflow.
+   * Note: this is only allowed in actions.
+   * The more idiomatic Convex way to do this is to subscribe to the results
+   * with {@link getStatus}.
+   * @param ctx - The context of the action.
+   * @param runId - The id of the run from {@link create}.
+   * @returns The result of the workflow.
+   */
+  async waitForResult(ctx: RunActionCtx, runId: string) {
     console.debug("Polling from client", runId);
     while (true) {
       const status = await this.getStatus(ctx, runId);
@@ -86,6 +152,13 @@ export class WorkflowRunner {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
+  /**
+   * Gets the status of a workflow. If called from a query, it will update
+   * whenever the status changes.
+   * @param ctx - The context of the query, mutation, or action.
+   * @param runId - The id of the run from {@link create}.
+   * @returns The status of the workflow.
+   */
   async getStatus(ctx: RunQueryCtx, runId: string) {
     const status = await ctx.runQuery(this.component.workflow.index.status, {
       workflowId: runId,
