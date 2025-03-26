@@ -205,6 +205,7 @@ async function enqueueStep(
       logLevel: console.logLevel,
     },
     {
+      name: stepConfig.id,
       retry: stepConfig.retryBehavior,
       onComplete: internal.workflow.lib.stepOnComplete,
       context,

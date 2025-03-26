@@ -80,6 +80,7 @@ export const start = mutation({
         logLevel: console.logLevel,
       },
       {
+        name: workflow.fnName,
         retry: true,
         onComplete: internal.workflow.lib.startRun,
         context,
