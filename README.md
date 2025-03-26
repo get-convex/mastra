@@ -74,7 +74,7 @@ You can do all of this by running the following commands from the project root:
 ```sh
 npm install -D @libsql/client
 echo '{"node":{"externalPackages":["@libsql/client"]}}' > convex.json
-printf '"use node";\nexport * as _ from "@libsql/client";' > convex/_.ts
+printf '"use node";\nexport * as _ from "@libsql/client";' > convex/_libsql_workaround.ts
 ```
 
 Create a `convex.config.ts` file in your app's `convex/` folder and install the component by calling `use`:
