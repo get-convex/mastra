@@ -188,4 +188,26 @@ See more example usage in [example.ts](./example/convex/nodeRuntime.ts).
    made via the Component. They're currently stored in separate tables with
    different schemas.
 
+## Troubleshooting
+
+### Errors deploying
+
+```
+✘ [ERROR] Could not resolve "assert"
+
+    node_modules/sonic-boom/index.js:8:23:
+      8 │ const assert = require('assert')
+        ╵                        ~~~~~~~~
+
+  The package "assert" wasn't found on the file system but is built into node. Are you trying to
+  bundle for node? You can use "platform: 'node'" to do that, which will remove this error.
+✖ It looks like you are using Node APIs from a file without the "use node" directive.
+```
+
+This is because you're using a Node API in a file that doesn't have the `"use node"` directive.
+Or you're importing a file in your project that imports from a node dependency that doesn't have the `"use node"` directive.
+
+To fix this, add the `"use node"` directive to the file. Note: these files can
+only have actions, since mutations and queries only run in the default runtime.
+
 <!-- END: Include on https://convex.dev/components -->
