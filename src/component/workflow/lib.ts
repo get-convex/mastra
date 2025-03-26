@@ -102,6 +102,7 @@ export const startRun = internalMutation({
     await ctx.db.patch(workflowId, { workflowConfigId, status: "started" });
     await startSteps(ctx, workflowId, targetsToStart, undefined);
   },
+  returns: v.null(),
 });
 
 // Assumes that you've vetted that these targets are ready to start
@@ -297,6 +298,7 @@ export const stepOnComplete = internalMutation({
       await checkForDone(ctx, args.context.workflowId);
     }
   },
+  returns: v.null(),
 });
 
 export async function getStepStates(

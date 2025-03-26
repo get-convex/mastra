@@ -26,11 +26,12 @@ export const debugOverrideLogLevel = internalMutation({
       throw Error("No existing config to patch.");
     }
   },
+  returns: v.null(),
 });
 
 export const deleteAll = internalAction({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     await Promise.all([
       deleteTable(ctx, "workflows"),
       deleteTable(ctx, "workflowConfigs"),
@@ -38,6 +39,7 @@ export const deleteAll = internalAction({
       deleteTable(ctx, "config"),
     ]);
   },
+  returns: v.null(),
 });
 
 async function deleteTable(ctx: ActionCtx, table: TableNames) {
@@ -67,4 +69,8 @@ export const deletePage = internalMutation({
       cursor: results.continueCursor,
     };
   },
+  returns: v.object({
+    isDone: v.boolean(),
+    cursor: v.string(),
+  }),
 });

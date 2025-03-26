@@ -12,6 +12,8 @@ import {
 import { internal } from "../_generated/api";
 import { assert } from "../../utils";
 import { omit } from "convex-helpers";
+import { doc, literals } from "convex-helpers/validators";
+import schema from "../schema";
 
 export const create = mutation({
   args: {
@@ -43,6 +45,7 @@ export const create = mutation({
 
     return workflowId;
   },
+  returns: v.id("workflows"),
 });
 
 export const start = mutation({
@@ -80,6 +83,7 @@ export const start = mutation({
       }
     );
   },
+  returns: v.null(),
 });
 
 export const resume = mutation({
@@ -124,6 +128,7 @@ export const resume = mutation({
     await ctx.db.replace(args.workflowId, workflow);
     await startSteps(ctx, args.workflowId, targets, args.resumeData);
   },
+  returns: v.null(),
 });
 
 export const status = query({
@@ -147,6 +152,16 @@ export const status = query({
 
     return { status, stepStates, activeBranches };
   },
+  returns: v.union(
+    v.null(),
+    v.object({ status: v.literal("created") }),
+    v.object({ status: v.literal("pending") }),
+    v.object({
+      status: v.union(literals("started", "finished")),
+      stepStates: v.array(doc(schema, "stepStates")),
+      activeBranches: schema.tables.workflows.validator.fields.activeBranches,
+    })
+  ),
 });
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -10,7 +10,6 @@ import {
 } from "../_generated/server.js";
 import { paginator } from "convex-helpers/server/pagination";
 import schema from "../schema.js";
-
 interface StorageColumn {
   type: "text" | "timestamp" | "uuid" | "jsonb" | "integer" | "bigint";
   primaryKey?: boolean;
@@ -124,6 +123,7 @@ export const loadSnapshot = query({
     const { _id, _creationTime, ...rest } = snapshot;
     return rest;
   },
+  returns: v.union(tables.snapshots.validator, v.null()),
 });
 
 export const load = query({

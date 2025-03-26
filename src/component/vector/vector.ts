@@ -48,6 +48,7 @@ export const createIndex = mutation({
       dimensions: dimensions,
     });
   },
+  returns: v.null(),
 });
 
 function getIndexMetadata(ctx: QueryCtx, name: string) {
@@ -134,6 +135,13 @@ export const upsert = mutation({
   },
 });
 
+const vSearchResult = v.object({
+  id: v.string(),
+  score: v.number(),
+  metadata: v.optional(v.record(v.string(), v.any())),
+  vector: v.optional(v.array(v.number())),
+});
+
 export const search = action({
   args: {
     indexName: v.string(),
@@ -187,6 +195,7 @@ export const search = action({
 
     return filtered;
   },
+  returns: v.array(vSearchResult),
 });
 
 type SearchResult = {
@@ -220,6 +229,7 @@ export const lookupResults = internalQuery({
         : []
     );
   },
+  returns: v.array(vSearchResult),
 });
 
 export const listIndexes = query({
@@ -229,6 +239,7 @@ export const listIndexes = query({
       (i) => i.indexName
     );
   },
+  returns: v.array(v.string()),
 });
 
 export const describeIndex = query({
@@ -249,6 +260,11 @@ export const describeIndex = query({
       metric: "cosine" as const,
     };
   },
+  returns: v.object({
+    dimension: vSupportedDimension,
+    count: v.number(),
+    metric: v.literal("cosine"),
+  }),
 });
 
 export const deleteIndex = action({
@@ -277,6 +293,7 @@ export const deleteIndex = action({
       cursor = results.continueCursor;
     }
   },
+  returns: v.null(),
 });
 
 type PageResult = {
@@ -304,4 +321,8 @@ export const deletePage = internalMutation({
       continueCursor: docs.continueCursor,
     };
   },
+  returns: v.object({
+    isDone: v.boolean(),
+    continueCursor: v.string(),
+  }),
 });
