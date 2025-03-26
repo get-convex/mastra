@@ -13,7 +13,7 @@ import {
   TABLE_TRACES,
   TABLE_WORKFLOW_SNAPSHOT,
 } from "@mastra/core/storage";
-import type { api as componentApi } from "../component/_generated/api.js";
+import type { Mounts } from "../component/_generated/api.js";
 import {
   mapSerializedToMastra,
   mapMastraToSerialized,
@@ -40,9 +40,9 @@ function getApi(
 
 export class ConvexStorage extends MastraStorage {
   public ctx: GenericActionCtx<GenericDataModel> | undefined;
-  public api: UseApi<typeof componentApi>["storage"];
+  public api: UseApi<Mounts>["storage"];
   constructor(
-    component: UseApi<typeof componentApi>,
+    component: UseApi<Mounts>,
     public options?: { name?: string }
   ) {
     super({ name: options?.name ?? "ConvexStorage" });

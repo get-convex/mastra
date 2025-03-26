@@ -2,7 +2,7 @@ export * as libsql from "@libsql/client";
 export * from "./storage.js";
 
 import { internalActionGeneric } from "convex/server";
-import type { api } from "../component/_generated/api.js";
+import type { Mounts } from "../component/_generated/api.js";
 import { UseApi } from "./types.js";
 import {
   Agent,
@@ -37,7 +37,7 @@ export const DEFAULT_RETRY_BEHAVIOR = {
 export class WorkflowRegistry {
   defaultAgents: Agent[];
   constructor(
-    public component: UseApi<typeof api>,
+    public component: UseApi<Mounts>,
     public options?: {
       /**
        * Agents that should use Convex for Storage and Vector

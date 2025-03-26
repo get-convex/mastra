@@ -3,7 +3,7 @@ import {
   FunctionReference,
   getFunctionName,
 } from "convex/server";
-import type { api } from "../component/_generated/api";
+import type { Mounts } from "../component/_generated/api";
 import {
   OpaqueIds,
   RunActionCtx,
@@ -29,7 +29,7 @@ export class WorkflowRunner {
    * @param options - Optional options.
    */
   constructor(
-    public component: UseApi<typeof api>,
+    public component: UseApi<Mounts>,
     public options?: {
       logLevel?: LogLevel;
       workpoolLogLevel?: WorkpoolLogLevel;
