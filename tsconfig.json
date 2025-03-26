@@ -12,8 +12,8 @@
     "moduleResolution": "Bundler",
 
     "isolatedModules": true,
-    "declaration": false,
-    "declarationMap": false,
+    "declaration": true,
+    "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
     "skipLibCheck": true
