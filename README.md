@@ -190,7 +190,33 @@ See more example usage in [example.ts](./example/convex/nodeRuntime.ts).
 
 ## Troubleshooting
 
-### Errors deploying
+### Libsql errors
+
+If you see an error like this:
+
+```
+Uncaught Failed to analyze _deps/node/4QMS5IZK.js: Cannot find module '@libsql/linux-arm64-gnu'
+```
+
+You need to add `@libsql/client` to the `externalPackages` in a `convex.json`
+file in the root of your project:
+
+```json
+{
+  "node": {
+    "externalPackages": ["@libsql/client"]
+  }
+}
+```
+
+If that still doesn't solve it, add a `convex/_libsql_workaround.ts` file:
+
+```ts
+"use node";
+export * as _ from "@libsql/client";
+```
+
+### Errors about node packages not being available
 
 ```
 ✘ [ERROR] Could not resolve "assert"
