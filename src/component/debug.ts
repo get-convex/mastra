@@ -3,10 +3,11 @@ import {
   ActionCtx,
   internalAction,
   internalMutation,
+  internalQuery,
 } from "./_generated/server";
 
 import { logLevel } from "./logger.js";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { TableNames } from "./_generated/dataModel";
 
 export const debugOverrideLogLevel = internalMutation({
@@ -73,4 +74,18 @@ export const deletePage = internalMutation({
     isDone: v.boolean(),
     cursor: v.string(),
   }),
+});
+
+export const getLatestWorkflowStatus = internalQuery({
+  args: {},
+  handler: async (ctx, args): Promise<unknown> => {
+    const workflows = await ctx.db.query("workflows").order("desc").first();
+    if (!workflows) {
+      return;
+    }
+    return ctx.runQuery(api.workflow.index.status, {
+      workflowId: workflows?._id,
+    });
+  },
+  returns: v.any(),
 });
