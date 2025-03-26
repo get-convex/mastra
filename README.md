@@ -25,7 +25,7 @@ const { start } = await runner.create( ctx, internal.file.workflowAction);
 const result = await start({...});
 ```
 
-![Architecture](./architecture.png)
+![Overview](./overview.png)
 
 ### Use cases
 
@@ -167,7 +167,6 @@ See more example usage in [example.ts](./example/convex/nodeRuntime.ts).
 - [ ] Performance optimizations
   - [ ] Re-use the workflowd config document if it hasn't changed.
   - [ ] Assume the workflow config is valid and fetch configuration lazily o.w.
-- [ ] Replace architecture image with something better
 
 ### TODO before it's out of beta
 
