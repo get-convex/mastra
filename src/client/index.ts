@@ -64,6 +64,15 @@ export class WorkflowRunner {
       resumeAsync: this.resumeAsync.bind(this, ctx, runId),
     };
   }
+  async createAndStartAsync(
+    ctx: RunMutationCtx,
+    fn: FunctionReference<"action", "internal">,
+    opts: { triggerData?: unknown }
+  ) {
+    const { runId, startAsync } = await this.create(ctx, fn);
+    await startAsync(opts);
+    return runId;
+  }
   /**
    * Starts the workflow asynchronously. You can have it write to your tables
    * for reactivity, or you can subscribe to the results with getStatus, or
@@ -139,7 +148,6 @@ export class WorkflowRunner {
    * @returns The result of the workflow.
    */
   async waitForResult(ctx: RunActionCtx, runId: string) {
-    console.debug("Polling from client", runId);
     while (true) {
       const status = await this.getStatus(ctx, runId);
       if (!status) {
@@ -164,7 +172,6 @@ export class WorkflowRunner {
       workflowId: runId,
     });
     if (!status) {
-      console.debug("Workflow not found", runId);
       return null;
     }
     return {
@@ -172,7 +179,7 @@ export class WorkflowRunner {
       stepStates: status.stepStates?.reduce(
         (acc, stepState) => {
           if (stepState) {
-            acc[stepState.stepId] = stepState.state;
+            acc[stepState.id] = stepState.state;
           }
           return acc;
         },

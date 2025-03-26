@@ -42,7 +42,8 @@ export class WorkflowRegistry {
       /**
        * Agents that should use Convex for Storage and Vector
        */
-      agents?: Agent[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      agents?: Agent<any>[];
     }
   ) {
     this.defaultAgents = options?.agents || [];
@@ -52,7 +53,8 @@ export class WorkflowRegistry {
     workflow: Workflow,
     options?: {
       /** Specify agents that should use Convex for Storage and Vector */
-      agents?: Agent[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      agents?: Agent<any>[];
     }
   ) {
     const agents = new Set([
@@ -149,7 +151,10 @@ async function runStep(
   if (workflow.triggerSchema) {
     const validated = workflow.triggerSchema.safeParse(op.triggerData);
     if (!validated.success) {
-      return { status: "failed", error: validated.error.message };
+      return {
+        status: "failed",
+        error: `Trigger data for workflow ${workflow.name} failed validation: ${validated.error.message}. Data: ${JSON.stringify(op.triggerData)}`,
+      };
     }
     triggerData = validated.data;
   }
@@ -236,6 +241,9 @@ async function runStep(
         suspended = true;
       },
     });
+    if (suspended) {
+      return { status: "suspended", suspendPayload };
+    }
     if (output && step.outputSchema) {
       const validated = step.outputSchema.safeParse(output);
       if (validated.success) {
@@ -243,9 +251,6 @@ async function runStep(
       } else {
         return { status: "failed", error: validated.error.message };
       }
-    }
-    if (suspended) {
-      return { status: "suspended", suspendPayload };
     }
     return { status: "success", output };
   } catch (e) {

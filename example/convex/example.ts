@@ -15,22 +15,34 @@ export const getStatus = query({
   },
 });
 
-export const test = action({
+export const createWorkflow = mutation({
   args: {},
   handler: async (ctx) => {
     const { runId, startAsync } = await runner.create(
       ctx,
-      internal.nodeRuntime.workflowAction
+      // Registered in the a "use node" file
+      internal.nodeRuntime.weatherToOutfitWorkflowAction
     );
-
     await startAsync({
       triggerData: {
-        name: "John Doe",
-        nested: {
-          text: "Nested text",
-        },
+        location: "San Francisco",
       },
     });
-    return runner.waitForResult(ctx, runId);
+    return runId;
+  },
+});
+
+export const resumeWorkflow = mutation({
+  args: {
+    runId: v.string(),
+    refinement: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await runner.resumeAsync(ctx, args.runId, {
+      stepId: "refineOutfit",
+      context: {
+        refinement: args.refinement,
+      },
+    });
   },
 });

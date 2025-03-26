@@ -1,12 +1,13 @@
 "use node";
-import { action, query } from "./_generated/server";
+import { action } from "./_generated/server";
 import { components, internal } from "./_generated/api";
-import { WorkflowRunner } from "@convex-dev/mastra";
 import { ConvexStorage, WorkflowRegistry } from "@convex-dev/mastra/registry";
+import { WorkflowRunner } from "@convex-dev/mastra";
 import { Agent, createStep, Mastra, Workflow } from "@mastra/core";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
-import { v } from "convex/values";
+import { weatherAgent, outfitAgent } from "../src/mastra/agents";
+import { weatherToOutfitWorkflow } from "../src/mastra/workflows/index";
 
 import crypto from "crypto";
 // ts-ignore
@@ -149,6 +150,11 @@ export const workflowAction = registry.define(workflow, {
   agents: [agent],
 });
 
+export const weatherToOutfitWorkflowAction = registry.define(
+  weatherToOutfitWorkflow,
+  { agents: [weatherAgent, outfitAgent] }
+);
+
 // Can run this not in node:
 
 const runner = new WorkflowRunner(components.mastra, {
@@ -161,7 +167,7 @@ export const startWorkflow = action({
   handler: async (ctx) => {
     const { runId } = await runner.create(
       ctx,
-      internal.nodeRuntime.workflowAction
+      internal.nodeRuntime.weatherToOutfitWorkflowAction
     );
     const result = await runner.startAsync(ctx, runId, {
       triggerData: { text: "John Doe", nested: { text: "Nested text" } },
@@ -173,11 +179,16 @@ export const startWorkflow = action({
 });
 const storage = new ConvexStorage(components.mastra);
 const mastra = new Mastra({
+  agents: {
+    weatherAgent,
+    outfitAgent,
+  },
   storage,
   workflows: {
     workflow,
   },
 });
+type M = ReturnType<typeof mastra.getAgent<"weatherAgent">>;
 
 export const t = action({
   args: {},

@@ -114,22 +114,22 @@ export async function startSteps(
 ) {
   const workflow = await ctx.db.get(workflowId);
   assert(workflow);
-  assert(workflow.status === "started");
+  assert(
+    workflow.status === "started",
+    `Workflow ${workflowId} must be started, is: ${workflow.status}`
+  );
   assert(workflow.workflowConfigId);
   const config = await ctx.db.get(workflow.workflowConfigId);
   assert(config);
-  const stepStates = await Promise.all(
-    workflow.stepStateIds.map(async (id) => {
-      const stepState = await ctx.db.get(id);
-      assert(stepState);
-      return stepState;
-    })
-  );
+  const stepStates = await getStepStates(ctx, workflow);
   for (const target of targetsToStart) {
     const stepConfig = config.stepConfigs[target.id];
     assert(stepConfig);
     const step = stepStates.find((s) => s.id === target.id);
-    assert(!step || step.state.status !== "suspended");
+    assert(
+      !step || step.state.status !== "suspended",
+      `Step ${target.id} is suspended, cannot start it`
+    );
     assert(
       !workflow.activeBranches.find((b) => targetsEqual(b.target, target)),
       `Trying to start the same step in the same branch: ${JSON.stringify(target)} workflowId ${workflowId}`
@@ -249,19 +249,13 @@ export const stepOnComplete = internalMutation({
       });
       return;
     }
-    const stepStates = await Promise.all(
-      workflow.stepStateIds.map(async (id) => {
-        const stepState = await ctx.db.get(id);
-        assert(stepState);
-        return stepState;
-      })
-    );
     // TODO: if the current version of our step started at a later order,
     // don't store it? Unless that one failed and we succeeded?
 
     // Assign ourselves the next order number.
     // TODO: store the state IDs in order, so we don't have to fetch them all.
-    const order = Math.max(...stepStates.map((s) => s.order), 0) + 1;
+    workflow.maxOrder++;
+    const order = workflow.maxOrder;
     const stepStateId = await ctx.db.insert("stepStates", {
       id: target.id,
       state,
@@ -269,15 +263,9 @@ export const stepOnComplete = internalMutation({
       order,
       workflowId: workflow._id,
     });
-    const stateIdx = workflow.stepStateIds.findIndex((id) => id === target.id);
-    if (stateIdx === -1) {
-      workflow.stepStateIds.push(stepStateId);
-      stepStates.push((await ctx.db.get(stepStateId))!);
-    } else {
-      workflow.stepStateIds[stateIdx] = stepStateId;
-      stepStates[stateIdx] = (await ctx.db.get(stepStateId))!;
-    }
-    await ctx.db.patch(workflow._id, { stepStateIds: workflow.stepStateIds });
+    workflow.stepStateIds[target.id] = stepStateId;
+    // Update order & stepStateIds
+    await ctx.db.replace(workflow._id, workflow);
 
     const activeIndex = workflow.activeBranches.findIndex((b) =>
       targetsEqual(b.target, target)
@@ -298,6 +286,7 @@ export const stepOnComplete = internalMutation({
       }
     } else if (active && state.status === "success") {
       // we should pursue potential next steps
+      const stepStates = await getStepStates(ctx, workflow);
       targets = await findNextTargets(ctx, target, stepStates, workflow._id);
     }
     // Update the workflow with the new step states
@@ -309,6 +298,19 @@ export const stepOnComplete = internalMutation({
     }
   },
 });
+
+export async function getStepStates(
+  ctx: QueryCtx,
+  workflow: Doc<"workflows">
+): Promise<Doc<"stepStates">[]> {
+  return Promise.all(
+    Object.values(workflow.stepStateIds).map(async (id) => {
+      const stepState = await ctx.db.get(id);
+      assert(stepState);
+      return stepState;
+    })
+  );
+}
 
 async function findNextTargets(
   ctx: MutationCtx,

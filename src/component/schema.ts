@@ -26,9 +26,10 @@ export default defineSchema({
     fnName: v.string(),
     fnHandle: v.string(),
     workflowConfigId: v.optional(v.id("workflowConfigs")),
-    // Denormalized list of the latest version of each step.
+    maxOrder: v.number(),
+    // Denormalized map of the latest version of each step.
     // TODO: use distinct on "id" after eq on workflowId, descending order
-    stepStateIds: v.array(v.id("stepStates")),
+    stepStateIds: v.record(vStepId, v.id("stepStates")),
     activeBranches: v.array(
       v.object({
         target: vTarget,

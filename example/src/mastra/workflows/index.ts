@@ -50,13 +50,17 @@ export const refineOutfit = createStep({
   async execute({ context, suspend, resourceId, threadId, runId }) {
     const previous = context.getStepResult("refineOutfit");
     if (!previous) {
+      console.log("suspending", context.inputData.outfit);
       await suspend({
-        ask: `How about this?`,
+        ask: `Do you want to change anything?`,
         outfit: context.inputData.outfit,
       });
       return { outfit: context.inputData.outfit };
     }
-    if (!context.inputData.refinement) {
+    if (
+      !context.inputData.refinement ||
+      context.inputData.refinement.toLowerCase().startsWith("no ")
+    ) {
       return { outfit: previous.outfit };
     }
     console.log("refining outfit", previous.outfit, context);

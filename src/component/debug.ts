@@ -1,6 +1,13 @@
-import { internalMutation } from "./_generated/server";
+import { v, VString } from "convex/values";
+import {
+  ActionCtx,
+  internalAction,
+  internalMutation,
+} from "./_generated/server";
 
 import { logLevel } from "./logger.js";
+import { internal } from "./_generated/api";
+import { TableNames } from "./_generated/dataModel";
 
 export const debugOverrideLogLevel = internalMutation({
   args: {
@@ -18,5 +25,46 @@ export const debugOverrideLogLevel = internalMutation({
     } else {
       throw Error("No existing config to patch.");
     }
+  },
+});
+
+export const deleteAll = internalAction({
+  args: {},
+  handler: async (ctx, args) => {
+    await Promise.all([
+      deleteTable(ctx, "workflows"),
+      deleteTable(ctx, "workflowConfigs"),
+      deleteTable(ctx, "stepStates"),
+      deleteTable(ctx, "config"),
+    ]);
+  },
+});
+
+async function deleteTable(ctx: ActionCtx, table: TableNames) {
+  let cursor: string | null = null;
+  let isDone = false;
+  while (!isDone) {
+    ({ isDone, cursor } = await ctx.runMutation(internal.debug.deletePage, {
+      table,
+      cursor,
+    }));
+  }
+}
+
+export const deletePage = internalMutation({
+  args: {
+    table: v.string() as VString<TableNames>,
+    cursor: v.union(v.string(), v.null()),
+  },
+  handler: async (ctx, args) => {
+    const results = await ctx.db.query(args.table).paginate({
+      cursor: args.cursor ?? null,
+      numItems: 1000,
+    });
+    await Promise.all(results.page.map((result) => ctx.db.delete(result._id)));
+    return {
+      isDone: results.isDone,
+      cursor: results.continueCursor,
+    };
   },
 });

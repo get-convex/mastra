@@ -7,9 +7,11 @@ import {
   updateConfig,
   makeWorkpool,
   vStartRunContext,
+  getStepStates,
 } from "./lib";
 import { internal } from "../_generated/api";
 import { assert } from "../../utils";
+import { omit } from "convex-helpers";
 
 export const create = mutation({
   args: {
@@ -33,7 +35,8 @@ export const create = mutation({
       fnName: args.workflow.fnName,
       fnHandle: args.workflow.fnHandle,
       status: "created",
-      stepStateIds: [],
+      maxOrder: 0,
+      stepStateIds: {},
       activeBranches: [],
       suspendedBranches: [],
     });
@@ -96,11 +99,29 @@ export const resume = mutation({
     assert(workflowConfig);
     const stepConfig = workflowConfig.stepConfigs[args.stepId];
     assert(stepConfig, `Step config ${args.stepId} to resume not found`);
+    const stepState = await ctx.db.get(workflow.stepStateIds[args.stepId]);
+    assert(stepState, `Step state ${args.stepId} to resume not found`);
+    assert(
+      stepState.state.status === "suspended",
+      `Step ${args.stepId} is not suspended, it is ${stepState.state.status}`
+    );
+    stepState.state = {
+      status: "success",
+      output: { ...stepState.state.suspendPayload, ...args.resumeData },
+    };
+    stepState.order = ++workflow.maxOrder;
+    const stepStateId = await ctx.db.insert(
+      "stepStates",
+      omit(stepState, ["_id", "_creationTime"])
+    );
+    workflow.stepStateIds[args.stepId] = stepStateId;
     const targets = workflow.suspendedBranches.filter(
       (t) => t.id === args.stepId
     );
-    // TODO: add resumeData to the output of the step.. strange but that's what Mastra does.
-    // workflows/workflow-instance.ts:490
+    workflow.suspendedBranches = workflow.suspendedBranches.filter(
+      (t) => t.id !== args.stepId
+    );
+    await ctx.db.replace(args.workflowId, workflow);
     await startSteps(ctx, args.workflowId, targets, args.resumeData);
   },
 });
@@ -121,16 +142,7 @@ export const status = query({
     } else if (workflow.status === "pending") {
       return { status: "pending" as const };
     }
-    const stepStates = await Promise.all(
-      workflow.stepStateIds.map(async (stepStateId) => {
-        const stepState = await ctx.db.get(stepStateId);
-        if (!stepState) {
-          return null;
-        }
-        const { state, id } = stepState;
-        return { state, stepId: id };
-      })
-    );
+    const stepStates = await getStepStates(ctx, workflow);
     const { activeBranches, status } = workflow;
 
     return { status, stepStates, activeBranches };
