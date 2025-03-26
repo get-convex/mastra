@@ -295,7 +295,7 @@ export const stepOnComplete = internalMutation({
     ) {
       // we should pursue potential next steps
       const stepStates = await getStepStates(ctx, workflow);
-      targets = await findNextTargets(ctx, target, stepStates, workflow._id);
+      targets = await findNextTargets(ctx, target, stepStates, workflow);
     }
     // Update the workflow with the new step states
     await ctx.db.replace(args.context.workflowId, workflow);
@@ -325,11 +325,9 @@ async function findNextTargets(
   ctx: MutationCtx,
   target: Target,
   stepStates: Doc<"stepStates">[],
-  workflowId: Id<"workflows">
+  workflow: Doc<"workflows">
 ): Promise<Target[]> {
   const targets: Target[] = [];
-  const workflow = await ctx.db.get(workflowId);
-  assert(workflow);
   assert(workflow.workflowConfigId);
   const config = await ctx.db.get(workflow.workflowConfigId);
   assert(config);
