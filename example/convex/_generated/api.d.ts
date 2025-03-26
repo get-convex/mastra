@@ -427,7 +427,13 @@ export declare const components: {
           "query",
           "internal",
           { runId: string; workflowName: string },
-          any
+          {
+            createdAt: number;
+            runId: string;
+            snapshot: string;
+            updatedAt: number;
+            workflowName: string;
+          } | null
         >;
       };
     };
@@ -449,21 +455,25 @@ export declare const components: {
               | 4096;
             indexName: string;
           },
-          any
+          null
         >;
         deleteIndex: FunctionReference<
           "action",
           "internal",
           { indexName: string },
-          any
+          null
         >;
         describeIndex: FunctionReference<
           "query",
           "internal",
           { indexName: string },
-          any
+          {
+            count: number;
+            dimension: 128 | 256 | 512 | 768 | 1024 | 1536 | 2048 | 3072 | 4096;
+            metric: "cosine";
+          }
         >;
-        listIndexes: FunctionReference<"query", "internal", {}, any>;
+        listIndexes: FunctionReference<"query", "internal", {}, Array<string>>;
         search: FunctionReference<
           "action",
           "internal",
@@ -474,7 +484,12 @@ export declare const components: {
             queryVector: Array<number>;
             topK: number;
           },
-          any
+          Array<{
+            id: string;
+            metadata?: Record<string, any>;
+            score: number;
+            vector?: Array<number>;
+          }>
         >;
         upsert: FunctionReference<
           "mutation",
@@ -505,25 +520,53 @@ export declare const components: {
               | "WARN"
               | "ERROR";
           },
-          any
+          string
         >;
         resume: FunctionReference<
           "mutation",
           "internal",
           { resumeData?: any; stepId: string; workflowId: string },
-          any
+          null
         >;
         start: FunctionReference<
           "mutation",
           "internal",
           { triggerData?: any; workflowId: string },
-          any
+          null
         >;
         status: FunctionReference<
           "query",
           "internal",
           { workflowId: string },
-          any
+          null | {
+            activeBranches?: Array<{
+              target:
+                | { branch: string; id: string; index: number; kind: "default" }
+                | {
+                    branch: string;
+                    event: string;
+                    id: string;
+                    index: number;
+                    kind: "subscriber";
+                  };
+              workId: string;
+            }>;
+            status: "created" | "pending" | "started" | "finished";
+            stepStates?: Array<{
+              _creationTime: number;
+              _id: string;
+              id: string;
+              order: number;
+              orderAtStart: number;
+              state:
+                | { status: "waiting" }
+                | { status: "suspended"; suspendPayload?: any }
+                | { status: "skipped" }
+                | { output?: any; status: "success" }
+                | { error: string; status: "failed" };
+              workflowId: string;
+            }>;
+          }
         >;
       };
     };

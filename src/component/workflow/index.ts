@@ -154,12 +154,12 @@ export const status = query({
   },
   returns: v.union(
     v.null(),
-    v.object({ status: v.literal("created") }),
-    v.object({ status: v.literal("pending") }),
     v.object({
-      status: v.union(literals("started", "finished")),
-      stepStates: v.array(doc(schema, "stepStates")),
-      activeBranches: schema.tables.workflows.validator.fields.activeBranches,
+      status: v.union(literals("created", "pending", "started", "finished")),
+      stepStates: v.optional(v.array(doc(schema, "stepStates"))),
+      activeBranches: v.optional(
+        schema.tables.workflows.validator.fields.activeBranches
+      ),
     })
   ),
 });

@@ -24,6 +24,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+
 /**
  * A utility for referencing Convex functions in your app's API.
  *
@@ -426,7 +427,13 @@ export type Mounts = {
         "query",
         "public",
         { runId: string; workflowName: string },
-        any
+        {
+          createdAt: number;
+          runId: string;
+          snapshot: string;
+          updatedAt: number;
+          workflowName: string;
+        } | null
       >;
     };
   };
@@ -439,21 +446,25 @@ export type Mounts = {
           dimensions: 128 | 256 | 512 | 768 | 1024 | 1536 | 2048 | 3072 | 4096;
           indexName: string;
         },
-        any
+        null
       >;
       deleteIndex: FunctionReference<
         "action",
         "public",
         { indexName: string },
-        any
+        null
       >;
       describeIndex: FunctionReference<
         "query",
         "public",
         { indexName: string },
-        any
+        {
+          count: number;
+          dimension: 128 | 256 | 512 | 768 | 1024 | 1536 | 2048 | 3072 | 4096;
+          metric: "cosine";
+        }
       >;
-      listIndexes: FunctionReference<"query", "public", {}, any>;
+      listIndexes: FunctionReference<"query", "public", {}, Array<string>>;
       search: FunctionReference<
         "action",
         "public",
@@ -464,7 +475,12 @@ export type Mounts = {
           queryVector: Array<number>;
           topK: number;
         },
-        any
+        Array<{
+          id: string;
+          metadata?: Record<string, any>;
+          score: number;
+          vector?: Array<number>;
+        }>
       >;
       upsert: FunctionReference<
         "mutation",
@@ -495,21 +511,54 @@ export type Mounts = {
             | "WARN"
             | "ERROR";
         },
-        any
+        string
       >;
       resume: FunctionReference<
         "mutation",
         "public",
         { resumeData?: any; stepId: string; workflowId: string },
-        any
+        null
       >;
       start: FunctionReference<
         "mutation",
         "public",
         { triggerData?: any; workflowId: string },
-        any
+        null
       >;
-      status: FunctionReference<"query", "public", { workflowId: string }, any>;
+      status: FunctionReference<
+        "query",
+        "public",
+        { workflowId: string },
+        null | {
+          activeBranches?: Array<{
+            target:
+              | { branch: string; id: string; index: number; kind: "default" }
+              | {
+                  branch: string;
+                  event: string;
+                  id: string;
+                  index: number;
+                  kind: "subscriber";
+                };
+            workId: string;
+          }>;
+          status: "created" | "pending" | "started" | "finished";
+          stepStates?: Array<{
+            _creationTime: number;
+            _id: string;
+            id: string;
+            order: number;
+            orderAtStart: number;
+            state:
+              | { status: "waiting" }
+              | { status: "suspended"; suspendPayload?: any }
+              | { status: "skipped" }
+              | { output?: any; status: "success" }
+              | { error: string; status: "failed" };
+            workflowId: string;
+          }>;
+        }
+      >;
     };
   };
 };
