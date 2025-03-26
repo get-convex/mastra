@@ -153,8 +153,13 @@ export class WorkflowRunner {
       if (!status) {
         return null;
       }
-      // TODO: should this return if it's suspended?
       if (status.status === "finished") {
+        return status;
+      }
+      if (
+        status.stepStates &&
+        Object.values(status.stepStates).find((s) => s.status === "suspended")
+      ) {
         return status;
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
