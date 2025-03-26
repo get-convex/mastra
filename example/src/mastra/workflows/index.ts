@@ -125,3 +125,178 @@ export const weatherToOutfitWorkflow = new Workflow({
       },
     },
   });
+const A = createStep({
+  id: "A",
+  execute: async ({ context, suspend }) => {
+    console.info("A");
+    return "A";
+  },
+});
+const B = createStep({
+  id: "B",
+  execute: async ({ context }) => {
+    console.info("B");
+    return "B";
+  },
+});
+const C = createStep({
+  id: "C",
+  execute: async ({ context }) => {
+    console.info("C");
+    return "C";
+  },
+});
+const D = createStep({
+  id: "D",
+  execute: async ({ context }) => {
+    console.info("D");
+    return "D";
+  },
+});
+const E = createStep({
+  id: "E",
+  execute: async ({ context }) => {
+    console.info("E");
+    return "E";
+  },
+});
+const Counter = createStep({
+  id: "Counter",
+  execute: async ({ context }) => {
+    const previous = context.getStepResult("Counter");
+    return { count: (previous?.count ?? 0) + 1 };
+  },
+  outputSchema: z.object({
+    count: z.number(),
+  }),
+});
+const SuspendsUntilHumanInput = createStep({
+  id: "SuspendsUntilHumanInput",
+  inputSchema: z.object({
+    human: z.string().optional(),
+  }),
+  execute: async ({ context, suspend }) => {
+    console.info("SuspendsUntilHumanInput");
+    if (context.inputData.human) {
+      console.info("Human message", context.inputData.human);
+    } else {
+      console.info("Suspending until human input");
+      await suspend({ ask: "Can you help?" });
+    }
+    return "SuspendsUntilHumanInput";
+  },
+});
+const RetryOnce = createStep({
+  id: "RetryOnce",
+  execute: async ({ context }) => {
+    const previous = context.getStepResult("RetryOnce");
+    if (previous) {
+      return { status: "success" };
+    }
+    return { status: "retry" };
+  },
+});
+const FailsOnSecondRun = createStep({
+  id: "FailsOnSecondRun",
+  execute: async ({ context }) => {
+    const previous = context.getStepResult("FailsOnSecondRun");
+    console.info("FailsOnSecondRun", previous);
+    if (previous) throw new Error("FailsOnSecondRun already ran");
+    return (previous ?? 0) + 1;
+  },
+});
+const Fail = createStep({
+  id: "Fail",
+  execute: async ({ context }) => {
+    console.info("Fail");
+    throw new Error("Fail");
+  },
+});
+
+export const whenTest = new Workflow({
+  name: "whenTest",
+  triggerSchema: z.object({
+    text: z.string(),
+    nested: z.object({
+      text: z.string(),
+    }),
+  }),
+})
+  .step(A)
+  .then(Counter)
+  // .if(async ({ context }) => context.getStepResult("A") === "A")
+  // .then(B)
+  // .step(Fail)
+  // .after([A, Fail])
+  //   .step(C)
+  .after(A)
+  .step(B, {
+    when: {
+      "A.status": "success",
+      // ref: {
+      //   step: A,
+      //   path: ".",
+      // },
+      // query: {
+      //   $eq: "A",
+      // },
+    },
+  })
+  // .then(C, {
+  //   when: {
+  //     ref: {
+  //       step: { id: "B" },
+  //       path: "status",
+  //     },
+  //     query: {
+  //       $eq: "success",
+  //     },
+  //   },
+  // })
+  // .after([A, C])
+  // .step(D, {
+  //   when: {
+  //     "B.status": "success",
+  //   },
+  // })
+  // .then(Counter)
+  // .after(B)
+  // // skip
+  // .step(Fail, {
+  //   when: { "RetryOnce.status": "retry" },
+  // })
+  // .until(async ({ context }) => context.getStepResult("Counter") === 5, Counter)
+  // .step(E, {
+  //   when: {
+  //     ref: {
+  //       step: { id: "Counter" },
+  //       path: "count",
+  //     },
+  //     query: { $lt: 5 },
+  //   },
+  // })
+  // .step(RetryOnce, {
+  //   when: {
+  //     and: [
+  //       {
+  //         ref: {
+  //           step: { id: "Counter" },
+  //           path: "status",
+  //         },
+  //         query: {
+  //           $eq: "success",
+  //         },
+  //       },
+  //       {
+  //         ref: {
+  //           step: { id: "Counter" },
+  //           path: "count",
+  //         },
+  //         query: {
+  //           $eq: 5,
+  //         },
+  //       },
+  //     ],
+  //   },
+  // })
+  .commit();
