@@ -1,5 +1,6 @@
+// Workaround to aid in bundling, to be combined with adding @libsql/client to
+// the externalPackages in a convex.json file in the root of your project.
 export * as libsql from "@libsql/client";
-export * from "./storage.js";
 
 import { internalActionGeneric } from "convex/server";
 import type { Mounts } from "../component/_generated/api.js";

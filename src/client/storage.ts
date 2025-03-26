@@ -1,3 +1,7 @@
+// Workaround to aid in bundling, to be combined with adding @libsql/client to
+// the externalPackages in a convex.json file in the root of your project.
+export * as libsql from "@libsql/client";
+
 import type { MessageType, StorageThreadType } from "@mastra/core";
 import type {
   EvalRow,

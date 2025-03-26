@@ -1,13 +1,14 @@
 "use node";
 import { action } from "./_generated/server";
 import { components, internal } from "./_generated/api";
-import { ConvexStorage, WorkflowRegistry } from "@convex-dev/mastra/registry";
+import { WorkflowRegistry } from "@convex-dev/mastra/registry";
 import { WorkflowRunner } from "@convex-dev/mastra";
 import { Agent, createStep, Mastra, Workflow } from "@mastra/core";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { weatherAgent, outfitAgent } from "../src/mastra/agents";
 import { weatherToOutfitWorkflow } from "../src/mastra/workflows/index";
+import { ConvexStorage } from "@convex-dev/mastra/storage";
 
 import crypto from "crypto";
 // ts-ignore
