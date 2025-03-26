@@ -153,6 +153,10 @@ See more example usage in [example.ts](./example/convex/nodeRuntime.ts).
    `convex dev` in Node 18.
    If you see issues about syscalls at import time, try using the cloud dev
    environment instead.
+1. Due to the nature of mutations, you can create, start, and resume workflows
+   asynchronously, but you can only await the result in an action.
+   Querying for the status will give you the status in your transaction, but
+   you can't poll for the status from within a transaction.
 
 ### TODO before it's out of alpha
 
