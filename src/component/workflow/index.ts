@@ -68,6 +68,9 @@ export const start = mutation({
       workflowId: args.workflowId,
       triggerData: args.triggerData,
     };
+    // TODO: if we already have a config, optimistically start the run.
+    // If it's changed, the step can return the new config if it's not at the
+    // expected path?
     await workpool.enqueueAction(
       ctx,
       internal.workflow.lib.configure,

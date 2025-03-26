@@ -2,32 +2,36 @@
 // the externalPackages in a convex.json file in the root of your project.
 export * as libsql from "@libsql/client";
 
-import { internalActionGeneric } from "convex/server";
-import type { Mounts } from "../component/_generated/api.js";
-import { UseApi } from "./types.js";
 import {
   Agent,
   getStepResult,
   Step,
+  StepCondition,
   StepGraph,
   StepNode,
   StepResult,
   VariableReference,
+  WhenConditionReturnValue,
   Workflow,
   WorkflowContext,
 } from "@mastra/core";
+import { internalActionGeneric } from "convex/server";
+import sift from "sift";
+import type { Mounts } from "../component/_generated/api.js";
 import { createLogger, Logger } from "../component/logger.js";
-import { ConvexVector } from "./vector.js";
-import { ConvexStorage } from "./storage.js";
 import {
-  StepConfig,
   ActionArgs,
   actionArgs,
-  WorkflowConfig,
   NamedBranches,
+  StepConfig,
   Target,
+  WorkflowConfig,
 } from "../component/workflow/types.js";
 import { assert } from "../utils.js";
+import { ConvexStorage } from "./storage.js";
+import { UseApi } from "./types.js";
+import { ConvexVector } from "./vector.js";
+import { RetryBehavior } from "@convex-dev/workpool";
 
 export const DEFAULT_RETRY_BEHAVIOR = {
   maxAttempts: 5,
@@ -37,6 +41,7 @@ export const DEFAULT_RETRY_BEHAVIOR = {
 
 export class WorkflowRegistry {
   defaultAgents: Agent[];
+  defaultRetryBehavior: RetryBehavior;
   constructor(
     public component: UseApi<Mounts>,
     public options?: {
@@ -45,9 +50,12 @@ export class WorkflowRegistry {
        */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       agents?: Agent<any>[];
+      defaultRetryBehavior?: RetryBehavior;
     }
   ) {
     this.defaultAgents = options?.agents || [];
+    this.defaultRetryBehavior =
+      options?.defaultRetryBehavior || DEFAULT_RETRY_BEHAVIOR;
   }
 
   define(
@@ -75,7 +83,7 @@ export class WorkflowRegistry {
         const op = args.op;
         if (op.kind === "getConfig") {
           console.debug("Getting config", workflow.name);
-          return encodeWorkflow(workflow);
+          return encodeWorkflow(workflow, this.defaultRetryBehavior);
         }
         for (const agent of agents) {
           const memory = agent.getMemory();
@@ -96,35 +104,43 @@ export class WorkflowRegistry {
   }
 }
 
-function encodeWorkflow(workflow: Workflow): WorkflowConfig {
+function encodeWorkflow(
+  workflow: Workflow,
+  defaultRetryBehavior: RetryBehavior
+): WorkflowConfig {
   const stepConfigs: Record<string, StepConfig> = {};
 
-  for (const [stepId, step] of Object.entries(workflow.steps)) {
-    if (step instanceof Step) {
-      const retryBehavior = step.retryConfig
-        ? DEFAULT_RETRY_BEHAVIOR
-        : undefined;
-      if (retryBehavior) {
-        if (step.retryConfig?.attempts) {
-          retryBehavior.maxAttempts = step.retryConfig.attempts;
-        }
-        if (step.retryConfig?.delay) {
-          retryBehavior.initialBackoffMs = step.retryConfig.delay;
-        }
-      }
-      stepConfigs[stepId] = {
-        id: stepId,
-        description: step.description,
-        retryBehavior,
-        kind: "action",
-      };
+  function addStepConfig(step: { id: string } & Partial<StepGeneric>) {
+    if (stepConfigs[step.id]) {
+      return;
     }
+    globalThis.console.debug(`Adding step config for ${step.id}`);
+    const retryBehavior = step.retryConfig ? defaultRetryBehavior : undefined;
+    if (retryBehavior) {
+      if (step.retryConfig?.attempts) {
+        retryBehavior.maxAttempts = step.retryConfig.attempts;
+      }
+      if (step.retryConfig?.delay) {
+        retryBehavior.initialBackoffMs = step.retryConfig.delay;
+      }
+    }
+    stepConfigs[step.id] = {
+      id: step.id,
+      description: step.description,
+      retryBehavior,
+      kind: "action",
+    };
+  }
+  for (const step of Object.values(workflow.steps)) {
+    addStepConfig(step);
   }
   function sequencesFromGraph(graph: StepGraph): NamedBranches {
     const sequences: NamedBranches = {};
     for (const node of graph.initial) {
+      addStepConfig(node.step);
       const stepId = node.step.id;
       const children = graph[stepId] ?? [];
+      children.forEach((n) => addStepConfig(n.step));
       sequences[stepId] = [stepId, ...children.map((n) => n.step.id)];
     }
     return sequences;
@@ -143,6 +159,8 @@ function encodeWorkflow(workflow: Workflow): WorkflowConfig {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type StepGeneric = Step<string, any, any, any>;
 async function runStep(
   console: Logger,
   workflow: Workflow,
@@ -159,34 +177,24 @@ async function runStep(
     }
     triggerData = validated.data;
   }
-  const step = workflow.steps[op.target.id] as Step<
-    string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    any
-  >;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const steps = op.steps as Record<string, StepResult<any>>;
+  const step = workflow.steps[op.target.id] as StepGeneric;
+  const steps = op.steps as Record<string, StepResult<unknown>>;
   let node: StepNode;
   try {
     node = lookupNode(workflow, op.target);
   } catch (e) {
     return {
       status: "failed",
-      error: e instanceof Error ? e.message : "Unknown error",
+      error: e instanceof Error ? e.message : "Unknown error finding step",
     };
   }
-  const config = node.config;
-  // TODO: handle conditionals
-  const when = config.when;
-  const resolvedData = inputFromVariables({
-    variables: config.data,
-    triggerData,
-    steps,
-  });
+  const { data: variables, handler } = node.config;
+  const resolvedData =
+    variables &&
+    typeof variables === "object" &&
+    Object.keys(variables).length > 0
+      ? inputFromVariables({ variables, triggerData, steps })
+      : triggerData;
   let inputData = {
     // resumedEvent: ..?
     ...resolvedData,
@@ -216,22 +224,24 @@ async function runStep(
         return triggerData;
       }
       const stepResult = steps[stepId];
-      if (!stepResult) {
+      if (!stepResult || stepResult.status !== "success") {
         return undefined;
       }
-      if (stepResult.status === "success") {
-        return stepResult.output;
-      }
-      return undefined;
+      return stepResult.output;
     },
+    // TODO: add mastra?
+    // mastra,
   };
-
+  const whenStatus = await conditionCheck(console, op.runId, context, node);
+  if (whenStatus) {
+    return whenStatus;
+  }
   let suspendPayload: unknown;
   let suspended = false;
 
   try {
     // difference from step.execute is tracing and payload afaict
-    const output = await config.handler({
+    const output = await handler({
       runId: op.runId,
       // threadId: op.threadId, ?
       // resourceId: op.resourceId, ?
@@ -348,6 +358,143 @@ function lookupNode(workflow: Workflow, target: Target): StepNode {
       `Did you edit the workflow?`
   );
   return node;
+}
+
+async function conditionCheck(
+  console: Logger,
+  runId: string,
+  context: WorkflowContext,
+  stepNode: StepNode
+): Promise<StepResult<never> | undefined> {
+  const {
+    config: { when },
+    step: { id: stepId },
+  } = stepNode;
+  if (!when) {
+    return undefined;
+  }
+  if (typeof when !== "function") {
+    if (!evaluateCondition(console, runId, when, context)) {
+      return { status: "failed", error: "Condition check failed." };
+    }
+    return undefined;
+  }
+  const conditionMet = await when({ context });
+  switch (conditionMet) {
+    case false:
+      console.debug(`Conditions for step ${stepId} in run ${runId} failed`);
+      return { status: "failed", error: "Condition check failed." };
+    case true:
+    case WhenConditionReturnValue.CONTINUE:
+      return undefined;
+    case WhenConditionReturnValue.LIMBO:
+      console.debug(`Conditions for step ${stepId} in run ${runId} in limbo`);
+      return { status: "skipped" };
+    case WhenConditionReturnValue.ABORT:
+      console.debug(`Conditions for step ${stepId} in run ${runId} aborted`);
+      return { status: "skipped" };
+    case WhenConditionReturnValue.CONTINUE_FAILED:
+      console.debug(`Conditions for step ${stepId} in run ${runId} failed`);
+      return { status: "failed", error: "Condition check failed" };
+  }
+}
+
+function evaluateCondition(
+  console: Logger,
+  runId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  condition: StepCondition<any, any>,
+  context: WorkflowContext
+): boolean {
+  let andBranchResult = true;
+  let baseResult = true;
+  let orBranchResult = true;
+
+  // Base condition simplified format
+  // TODO: pretty sure this should do the simple check for EVERY one with a .
+  const simpleCondition = Object.entries(condition).find(([key]) =>
+    key.includes(".")
+  );
+  if (simpleCondition) {
+    const [key, queryValue] = simpleCondition;
+    const [stepId, ...pathParts] = key.split(".");
+    const path = pathParts.join(".");
+
+    const sourceData =
+      stepId === "trigger"
+        ? context.triggerData
+        : getStepResult(context.steps[stepId as string]);
+
+    if (!sourceData) {
+      console.debug(`No condition data for step ${stepId} in run ${runId}`);
+      return false;
+    }
+
+    let value = getValueFromPath(sourceData, path);
+
+    // If path is 'status', check if value is empty and we are not referencing the trigger.
+    // Currently only successful step results get to this point, so we can safely assume that the status is 'success'
+    if (stepId !== "trigger" && path === "status" && !value) {
+      value = "success";
+    }
+
+    // Handle different types of queries
+    if (typeof queryValue === "object" && queryValue !== null) {
+      // If it's an object, treat it as a query object
+      baseResult = sift(queryValue)(value);
+    } else {
+      // For simple values, do an equality check
+      baseResult = value === queryValue;
+    }
+  }
+
+  // Base condition
+  if ("ref" in condition) {
+    const { ref, query } = condition;
+    const sourceData =
+      ref.step === "trigger"
+        ? context.triggerData
+        : getStepResult(context.steps[ref.step.id]);
+
+    if (!sourceData) {
+      console.debug(
+        `No condition data for ${JSON.stringify(ref)} in run ${runId}`
+      );
+      return false;
+    }
+
+    let value = getValueFromPath(sourceData, ref.path);
+
+    // If path is 'status', check if value is empty and we are not referencing the trigger.
+    // Currently only successful step results get to this point, so we can safely assume that the status is 'success'
+    if (ref.step !== "trigger" && ref.path === "status" && !value) {
+      value = "success";
+    }
+
+    baseResult = sift(query)(value);
+  }
+
+  // AND condition
+  if ("and" in condition) {
+    andBranchResult = condition.and.every((cond) =>
+      evaluateCondition(console, runId, cond, context)
+    );
+  }
+
+  // OR condition
+  if ("or" in condition) {
+    orBranchResult = condition.or.some((cond) =>
+      evaluateCondition(console, runId, cond, context)
+    );
+  }
+
+  if ("not" in condition) {
+    baseResult = !evaluateCondition(console, runId, condition.not, context);
+  }
+
+  const finalResult = baseResult && andBranchResult && orBranchResult;
+
+  return finalResult;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

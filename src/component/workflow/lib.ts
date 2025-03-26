@@ -125,7 +125,10 @@ export async function startSteps(
   const stepStates = await getStepStates(ctx, workflow);
   for (const target of targetsToStart) {
     const stepConfig = config.stepConfigs[target.id];
-    assert(stepConfig);
+    assert(
+      stepConfig,
+      `Step config ${target.id} not found for workflow ${workflowId}`
+    );
     const step = stepStates.find((s) => s.id === target.id);
     assert(
       !step || step.state.status !== "suspended",
@@ -176,7 +179,7 @@ async function enqueueStep(
       `Step config ${target.id} not found for workflow ${workflow._id}`
     );
   }
-  const orderAtStart = Math.max(...stepStates.map((s) => s.order), 0);
+  const orderAtStart = workflow.maxOrder;
   const context: Infer<typeof stepOnCompleteContext> = {
     workflowId: workflow._id,
     target,
@@ -285,7 +288,10 @@ export const stepOnComplete = internalMutation({
       if (!workflow.suspendedBranches.find((b) => targetsEqual(b, target))) {
         workflow.suspendedBranches.push(target);
       }
-    } else if (active && state.status === "success") {
+    } else if (
+      active &&
+      (state.status === "success" || state.status === "skipped")
+    ) {
       // we should pursue potential next steps
       const stepStates = await getStepStates(ctx, workflow);
       targets = await findNextTargets(ctx, target, stepStates, workflow._id);
@@ -357,8 +363,7 @@ async function findNextTargets(
     const valid = dependencies.every((dependency) => {
       if (dependency === target.id) return true;
       const stepState = stepStates.find((s) => s.id === dependency);
-      assert(stepState);
-      return stepState.state.status === "success";
+      return stepState && stepState.state.status === "success";
     });
     if (valid) {
       for (const [branch, steps] of Object.entries(branches)) {
@@ -396,7 +401,6 @@ export async function makeWorkpool(ctx: QueryCtx) {
   return new Workpool(components.workpool, {
     maxParallelism: config?.config.maxParallelism ?? DEFAULT_MAX_PARALLELISM,
     logLevel,
-    defaultRetryBehavior: DEFAULT_RETRY_BEHAVIOR,
   });
 }
 
