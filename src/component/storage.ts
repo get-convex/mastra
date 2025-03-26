@@ -1,15 +1,15 @@
 import { v, Validator } from "convex/values";
-import tables from "./tables.js";
-import { internal } from "../_generated/api.js";
-import { TableNames } from "./tables.js";
+import tables from "./storageTables.js";
+import { internal } from "./_generated/api.js";
+import { TableNames } from "./storageTables.js";
 import {
   action,
   internalMutation,
   mutation,
   query,
-} from "../_generated/server.js";
+} from "./_generated/server.js";
 import { paginator } from "convex-helpers/server/pagination";
-import schema from "../schema.js";
+import schema from "./schema.js";
 
 interface StorageColumn {
   type: "text" | "timestamp" | "uuid" | "jsonb" | "integer" | "bigint";

@@ -1,6 +1,6 @@
 import { v, Infer } from "convex/values";
-import { mutation, query } from "../_generated/server";
-import { createLogger, logLevel } from "../logger";
+import { mutation, query } from "./_generated/server";
+import { createLogger, logLevel } from "./logger";
 import {
   makeConsole,
   startSteps,
@@ -9,8 +9,8 @@ import {
   vStartRunContext,
   getStepStates,
 } from "./lib";
-import { internal } from "../_generated/api";
-import { assert } from "../../utils";
+import { internal } from "./_generated/api";
+import { assert } from "../utils";
 import { omit } from "convex-helpers";
 
 export const create = mutation({

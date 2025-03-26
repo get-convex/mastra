@@ -12,8 +12,8 @@ import {
   UseApi,
 } from "./types";
 import { DEFAULT_LOG_LEVEL, LogLevel } from "../component/logger";
-import type { ActionArgs } from "../component/workflow/types";
-import { StepStatus } from "../component/workflow/types";
+import type { ActionArgs } from "../component/types";
+import { StepStatus } from "../component/types";
 import { LogLevel as WorkpoolLogLevel } from "@convex-dev/workpool";
 
 export class WorkflowRunner {

@@ -7,15 +7,15 @@ import {
 } from "@convex-dev/workpool";
 import { FunctionHandle } from "convex/server";
 import { Infer, v } from "convex/values";
-import { components, internal } from "../_generated/api";
-import { Doc, Id } from "../_generated/dataModel";
+import { components, internal } from "./_generated/api";
+import { Doc, Id } from "./_generated/dataModel";
 import {
   internalAction,
   internalMutation,
   MutationCtx,
   QueryCtx,
-} from "../_generated/server";
-import { createLogger, DEFAULT_LOG_LEVEL, logLevel, LogLevel } from "../logger";
+} from "./_generated/server";
+import { createLogger, DEFAULT_LOG_LEVEL, logLevel, LogLevel } from "./logger";
 import {
   ActionArgs,
   StepStatus,
@@ -25,7 +25,7 @@ import {
   WorkflowConfig,
 } from "./types";
 import { StepResult } from "@mastra/core";
-import { assert } from "../../utils";
+import { assert } from "../utils";
 import { validate } from "convex-helpers/validators";
 
 export const DEFAULT_MAX_PARALLELISM = 20;

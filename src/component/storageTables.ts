@@ -1,6 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-import { vAssistantContent, vToolContent, vUserContent } from "../../ai/types";
+import { vAssistantContent, vToolContent, vUserContent } from "../ai/types";
 
 const storageSchema = {
   // messages.ts

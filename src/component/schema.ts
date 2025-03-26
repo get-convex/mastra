@@ -1,15 +1,15 @@
 import { defineSchema, defineTable } from "convex/server";
-import storageTables from "./storage/tables.js";
+import storageTables from "./storageTables.js";
 import { v } from "convex/values";
 import { logLevel } from "./logger.js";
-import vectorTables from "./vector/tables.js";
+import vectorTables from "./tables.js";
 import {
   stepConfig,
   stepStatus,
   vStepId,
   vNamedBranches,
   vTarget,
-} from "./workflow/types.js";
+} from "./types.js";
 import { workIdValidator, vLogLevel } from "@convex-dev/workpool";
 
 export default defineSchema({

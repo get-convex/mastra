@@ -25,7 +25,7 @@ import {
   WorkflowConfig,
   NamedBranches,
   Target,
-} from "../component/workflow/types.js";
+} from "../component/types.js";
 import { assert } from "../utils.js";
 
 export const DEFAULT_RETRY_BEHAVIOR = {

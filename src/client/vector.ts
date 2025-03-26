@@ -2,7 +2,7 @@ import { ActionCtx } from "../component/_generated/server.js";
 import type { api as componentApi } from "../component/_generated/api.js";
 import { UseApi } from "./types.js";
 import { MastraVector } from "@mastra/core";
-import { SupportedTableName } from "../component/vector/tables.js";
+import { SupportedTableName } from "../component/tables.js";
 export { InMemoryVector } from "./in-memory.js";
 
 export class ConvexVector extends MastraVector {

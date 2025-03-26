@@ -1,6 +1,6 @@
 import { vRetryBehavior } from "@convex-dev/workpool";
 import { Infer, ObjectType, v } from "convex/values";
-import { logLevel } from "../logger";
+import { logLevel } from "./logger";
 
 // Just for readability
 export const vStepId = v.string();

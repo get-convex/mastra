@@ -11,7 +11,7 @@ import {
   internalQuery,
   internalMutation,
   QueryCtx,
-} from "../_generated/server";
+} from "./_generated/server";
 import {
   SUPPORTED_DIMENSIONS,
   SupportedDimension,
@@ -19,9 +19,9 @@ import {
   vSupportedId,
   vSupportedTableName,
 } from "./tables";
-import { internal } from "../_generated/api";
+import { internal } from "./_generated/api";
 import { paginator } from "convex-helpers/server/pagination";
-import schema from "../schema";
+import schema from "./schema";
 
 export const createIndex = mutation({
   args: { indexName: v.string(), dimensions: vSupportedDimension },

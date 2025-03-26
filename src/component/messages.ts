@@ -1,14 +1,14 @@
 import { v } from "convex/values";
-import { Doc } from "../_generated/dataModel.js";
-import { mutation, query } from "../_generated/server.js";
+import { Doc } from "./_generated/dataModel.js";
+import { mutation, query } from "./_generated/server.js";
 import {
   type SerializedMessage,
   type SerializedThread,
   vSerializedMessage,
   vSerializedThread,
-} from "../../mapping/storage.js";
+} from "../mapping/storage.js";
 import { paginator } from "convex-helpers/server/pagination";
-import schema from "../schema.js";
+import schema from "./schema.js";
 
 function threadToSerializedMastra(thread: Doc<"threads">): SerializedThread {
   const { id, title, metadata, resourceId, createdAt, updatedAt } = thread;

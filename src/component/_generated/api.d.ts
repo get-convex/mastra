@@ -10,14 +10,14 @@
 
 import type * as debug from "../debug.js";
 import type * as logger from "../logger.js";
-import type * as storage_messages from "../storage/messages.js";
-import type * as storage_storage from "../storage/storage.js";
-import type * as storage_tables from "../storage/tables.js";
-import type * as vector_tables from "../vector/tables.js";
-import type * as vector_vector from "../vector/vector.js";
-import type * as workflow_index from "../workflow/index.js";
-import type * as workflow_lib from "../workflow/lib.js";
-import type * as workflow_types from "../workflow/types.js";
+import type * as storage_messages from "../messages.js";
+import type * as storage_storage from "../storage.js";
+import type * as storage_tables from "../storageTables.js";
+import type * as vector_tables from "../tables.js";
+import type * as vector_vector from "../vector.js";
+import type * as workflow_index from "../workflow.js";
+import type * as workflow_lib from "../lib.js";
+import type * as workflow_types from "../types.js";
 
 import type {
   ApiFromModules,
