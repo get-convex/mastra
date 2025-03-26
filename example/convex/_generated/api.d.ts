@@ -8,7 +8,7 @@
  * @module
  */
 
-import type * as _hax from "../_hax.js";
+import type * as _libsql_workaround from "../_libsql_workaround.js";
 import type * as example from "../example.js";
 import type * as nodeRuntime from "../nodeRuntime.js";
 import type * as v8Runtime from "../v8Runtime.js";
@@ -27,7 +27,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  _hax: typeof _hax;
+  _libsql_workaround: typeof _libsql_workaround;
   example: typeof example;
   nodeRuntime: typeof nodeRuntime;
   v8Runtime: typeof v8Runtime;
