@@ -9,6 +9,7 @@ import {
 } from "../../mapping/index.js";
 import { paginator } from "convex-helpers/server/pagination";
 import schema from "../schema.js";
+import { createLogger } from "../logger.js";
 
 function threadToSerializedMastra(thread: Doc<"threads">): SerializedThread {
   const { id, title, metadata, resourceId, createdAt, updatedAt } = thread;
@@ -18,11 +19,14 @@ function threadToSerializedMastra(thread: Doc<"threads">): SerializedThread {
 export const getThreadById = query({
   args: { threadId: v.string() },
   handler: async (ctx, args) => {
+    const console = createLogger();
+    console.debug(`Getting thread by id ${args.threadId}`);
     const thread = await ctx.db
       .query("threads")
       .withIndex("id", (q) => q.eq("id", args.threadId))
       .unique();
     if (!thread) {
+      console.debug(`Thread ${args.threadId} not found`);
       return null;
     }
     return threadToSerializedMastra(thread);
@@ -43,6 +47,8 @@ export const getThreadsByResourceId = query({
     continueCursor: string;
     isDone: boolean;
   }> => {
+    const console = createLogger();
+    console.debug(`Getting threads by resource id ${args.resourceId}`);
     const threads = await paginator(ctx.db, schema)
       .query("threads")
       .withIndex("resourceId", (q) => q.eq("resourceId", args.resourceId))
@@ -50,6 +56,7 @@ export const getThreadsByResourceId = query({
         numItems: 100,
         cursor: args.cursor ?? null,
       });
+    console.debug(`Got ${threads.page.length} threads`);
     return {
       threads: threads.page.map(threadToSerializedMastra),
       continueCursor: threads.continueCursor,
@@ -66,6 +73,8 @@ export const getThreadsByResourceId = query({
 export const saveThread = mutation({
   args: { thread: vSerializedThread },
   handler: async (ctx, args) => {
+    const console = createLogger();
+    console.debug(`Saving thread ${args.thread.id}`);
     await ctx.db.insert("threads", args.thread);
   },
   returns: v.null(),
@@ -78,6 +87,8 @@ export const updateThread = mutation({
     metadata: v.optional(v.record(v.string(), v.any())),
   },
   handler: async (ctx, args) => {
+    const console = createLogger();
+    console.debug(`Updating thread ${args.threadId}`);
     const thread = await ctx.db
       .query("threads")
       .withIndex("id", (q) => q.eq("id", args.threadId))
@@ -86,12 +97,14 @@ export const updateThread = mutation({
       throw new Error(`Thread ${args.threadId} not found`);
     }
     if (args.title) {
+      console.debug(`Updating title for thread ${args.threadId}`);
       await ctx.db.patch(thread._id, {
         title: args.title,
         updatedAt: Date.now(),
       });
     }
     if (args.metadata) {
+      console.debug(`Updating metadata for thread ${args.threadId}`);
       await ctx.db.patch(thread._id, {
         metadata: args.metadata,
         updatedAt: Date.now(),
@@ -105,6 +118,8 @@ export const updateThread = mutation({
 export const deleteThread = mutation({
   args: { threadId: v.string() },
   handler: async (ctx, args) => {
+    const console = createLogger();
+    console.debug(`Deleting thread ${args.threadId}`);
     const thread = await ctx.db
       .query("threads")
       .withIndex("id", (q) => q.eq("id", args.threadId))
@@ -177,6 +192,8 @@ export const getMessagesPage = query({
     // memoryConfig: v.optional(vMemoryConfig),
   },
   handler: async (ctx, args): Promise<SerializedMessage[]> => {
+    const console = createLogger();
+    console.debug(`Getting messages page for thread ${args.threadId}`);
     const messages = await ctx.db
       .query("messages")
       .withIndex("threadId", (q) => q.eq("threadId", args.threadId))
@@ -215,8 +232,10 @@ export const getMessagesPage = query({
         }
       }) ?? []
     );
+    console.debug(`Need to fetch ${toFetch.length} messages`);
     // sort and find unique numbers in toFetch
     const uniqueToFetch = [...new Set(toFetch)].sort();
+    console.debug(`Unique to fetch ${uniqueToFetch}`);
     // find contiguous ranges in uniqueToFetch
     const ranges: { start: number; end: number }[] = [];
     for (let i = 0; i < uniqueToFetch.length; i++) {
@@ -228,6 +247,7 @@ export const getMessagesPage = query({
       }
       ranges.push({ start, end });
     }
+    console.debug(`Ranges to fetch ${ranges}`);
     const fetched = (
       await Promise.all(
         ranges.map(async (range) => {
@@ -243,7 +263,9 @@ export const getMessagesPage = query({
         })
       )
     ).flat();
+    console.debug(`Fetched ${fetched.length} messages`);
     messages.push(...fetched);
+    console.debug(`Total messages ${messages.length}`);
     return messages.map(messageToSerializedMastra);
   },
   returns: v.array(vSerializedMessage),
@@ -252,6 +274,8 @@ export const getMessagesPage = query({
 export const saveMessages = mutation({
   args: { messages: v.array(vSerializedMessage) },
   handler: async (ctx, args) => {
+    const console = createLogger();
+    console.debug(`Saving messages ${args.messages.length}`);
     const messagesByThreadId: Record<string, SerializedMessage[]> = {};
     for (const message of args.messages) {
       messagesByThreadId[message.threadId] = [
@@ -277,3 +301,6 @@ export const saveMessages = mutation({
   },
   returns: v.null(),
 });
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const console = "THIS IS A REMINDER TO USE createLogger";
