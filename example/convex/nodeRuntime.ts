@@ -1,8 +1,6 @@
 "use node";
 import { action } from "./_generated/server";
 import { components, internal } from "./_generated/api";
-import { WorkflowRegistry } from "@convex-dev/mastra/registry";
-import { WorkflowRunner } from "@convex-dev/mastra";
 import { Agent, createStep, Mastra, Workflow } from "@mastra/core";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
@@ -240,40 +238,7 @@ const workflow = new Workflow({
   })
   .commit();
 
-const registry = new WorkflowRegistry(components.mastra);
-
-export const workflowAction = registry.define(workflow, {
-  agents: [agent],
-});
-
-export const weatherToOutfitWorkflowAction = registry.define(
-  weatherToOutfitWorkflow,
-  { agents: [weatherAgent, outfitAgent] }
-);
-
 // Can run this not in node:
-
-const runner = new WorkflowRunner(components.mastra, {
-  logLevel: "DEBUG",
-  workpoolLogLevel: "INFO",
-});
-
-export const startWorkflow = action({
-  args: {},
-  handler: async (ctx) => {
-    const { runId } = await runner.create(
-      ctx,
-      internal.nodeRuntime.weatherToOutfitWorkflowAction
-    );
-    const result = await runner.startAsync(ctx, runId, {
-      triggerData: { text: "John Doe", nested: { text: "Nested text" } },
-    });
-    console.debug("Workflow result", runId, result);
-
-    return await runner.waitForResult(ctx, runId);
-  },
-});
-const storage = new ConvexStorage(components.mastra);
 const mastra = new Mastra({
   agents: {
     weatherAgent,
@@ -286,7 +251,7 @@ const mastra = new Mastra({
 });
 type M = ReturnType<typeof mastra.getAgent<"weatherAgent">>;
 
-export const t = action({
+export const startWorkflow = action({
   args: {},
   handler: async (ctx) => {
     storage.ctx = ctx;
@@ -307,19 +272,9 @@ export const t = action({
     // });
     // return;
     // const { runId, start, resume } = workflow.createRun();
-    // const w = mastra.getWorkflow("workflow");
-    // const { runId, start, resume } = w.createRun();
-    const { runId, startAsync } = await runner.create(
-      ctx,
-      internal.nodeRuntime.workflowAction
-    );
-    await startAsync({
-      triggerData: { text: "John Doe", nested: { text: "Nested text" } },
-    });
+    const w = mastra.getWorkflow("workflow");
+    const { runId, start, resume } = w.createRun();
     return runId;
-    // return runner.waitForResult(ctx, runId);
-    // console.debug("Workflow result", runId, result);
-    // await new Promise((resolve) => setTimeout(resolve, 1000));
     // const afterResume = await resume({
     //   stepId: "A",
     //   context: {
