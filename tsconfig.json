@@ -12,6 +12,7 @@
     "moduleResolution": "Bundler",
 
     "isolatedModules": true,
+    "composite": false,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,

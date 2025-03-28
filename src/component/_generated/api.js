@@ -20,4 +20,8 @@ import { anyApi, componentsGeneric } from "convex/server";
  */
 export const api = anyApi;
 export const internal = anyApi;
+
+/**
+ * @type {ReturnType<typeof import('convex/server').componentsGeneric>}
+ */
 export const components = componentsGeneric();
