@@ -46,18 +46,6 @@
         "default": "./dist/commonjs/client/index.js"
       }
     },
-    "./registry": {
-      "import": {
-        "@convex-dev/component-source": "./src/client/registry.ts",
-        "types": "./dist/esm/client/registry.d.ts",
-        "default": "./dist/esm/client/registry.js"
-      },
-      "require": {
-        "@convex-dev/component-source": "./src/client/registry.ts",
-        "types": "./dist/commonjs/client/registry.d.ts",
-        "default": "./dist/commonjs/client/registry.js"
-      }
-    },
     "./vector": {
       "import": {
         "@convex-dev/component-source": "./src/client/vector.ts",
