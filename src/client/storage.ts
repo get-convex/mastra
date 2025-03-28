@@ -1,6 +1,7 @@
 // Workaround to aid in bundling, to be combined with adding @libsql/client to
 // the externalPackages in a convex.json file in the root of your project.
 export * as libsql from "@libsql/client";
+export { InMemoryStorage } from "./in-memory.js";
 
 import type { MessageType, StorageThreadType } from "@mastra/core";
 import type {
@@ -17,23 +18,22 @@ import {
   TABLE_TRACES,
   TABLE_WORKFLOW_SNAPSHOT,
 } from "@mastra/core/storage";
-import type { Mounts } from "../component/_generated/api.js";
-import {
-  mapSerializedToMastra,
-  mapMastraToSerialized,
-  mastraToConvexTableNames,
-  SerializedThread,
-  SerializedMessage,
-  SerializedTrace,
-} from "../mapping/storage.js";
-import { UseApi } from "./types.js";
 import {
   GenericActionCtx,
   GenericDataModel,
   GenericMutationCtx,
   GenericQueryCtx,
 } from "convex/server";
-export { InMemoryStorage } from "./in-memory.js";
+import type { Mounts } from "../component/_generated/api.js";
+import {
+  mapMastraToSerialized,
+  mapSerializedToMastra,
+  mastraToConvexTableNames,
+  SerializedMessage,
+  SerializedThread,
+  SerializedTrace,
+} from "../mapping/storage.js";
+import { UseApi } from "./types.js";
 
 export class ConvexStorage extends MastraStorage {
   ctx: Ctx<"action" | "mutation" | "query"> | undefined;

@@ -81,7 +81,7 @@ You can do all of this by running the following commands from the project root:
 ```sh
 npm install -D @libsql/client
 echo '{"node":{"externalPackages":["@libsql/client"]}}' > convex.json
-printf '"use node";\nexport * as _ from "@libsql/client";' > convex/_libsql_workaround.ts
+printf '"use node";\nexport * as _ from "@libsql/client";' > convex/_workaround.ts
 ```
 
 Create a `convex.config.ts` file in your app's `convex/` folder and install the component by calling `use`:
@@ -144,6 +144,7 @@ See more example usage in [example.ts](./example/convex/nodeRuntime.ts).
 ### TODO before it's out of alpha
 
 - [ ] Validate the Storage and Vector implementations (from Convex).
+- [ ] Support queries on workflow state.
 
 ### TODO before it's out of beta
 
@@ -183,12 +184,22 @@ file in the root of your project:
 }
 ```
 
-If that still doesn't solve it, add a `convex/_libsql_workaround.ts` file:
+If that still doesn't solve it, add a `convex/_workaround.ts` file:
 
 ```ts
 "use node";
 export * as _ from "@libsql/client";
 ```
+
+### Errors about 'no loader is configured for ".node" files'
+
+If you see an error like this:
+
+```
+✘ [ERROR] No loader is configured for ".node" files: node_modules/onnxruntime-node/bin/napi-v3/win32/arm64/onnxruntime_binding.nodel
+```
+
+Delete your `node_modules` and `package-lock.json` and re-install using node 18.
 
 ### Errors about node packages not being available
 
@@ -204,8 +215,10 @@ export * as _ from "@libsql/client";
 ✖ It looks like you are using Node APIs from a file without the "use node" directive.
 ```
 
-This is because you're using a Node API in a file that doesn't have the `"use node"` directive.
-Or you're importing a file in your project that imports from a node dependency that doesn't have the `"use node"` directive.
+This is because you're using a Node API in a file that doesn't have
+`"use node";` as the first line in the file
+Or you're importing a file in your convex/ directory that imports from a
+node dependency that doesn't have the `"use node"` directive.
 
 To fix this, add the `"use node"` directive to the file. Note: these files can
 only have actions, since mutations and queries only run in the default runtime.

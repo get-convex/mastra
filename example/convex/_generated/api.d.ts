@@ -10,7 +10,6 @@
 
 import type * as _libsql_workaround from "../_libsql_workaround.js";
 import type * as example from "../example.js";
-import type * as nodeRuntime from "../nodeRuntime.js";
 import type * as v8Runtime from "../v8Runtime.js";
 
 import type {
@@ -30,7 +29,6 @@ import type {
 declare const fullApi: ApiFromModules<{
   _libsql_workaround: typeof _libsql_workaround;
   example: typeof example;
-  nodeRuntime: typeof nodeRuntime;
   v8Runtime: typeof v8Runtime;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
