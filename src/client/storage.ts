@@ -27,31 +27,59 @@ import {
   SerializedTrace,
 } from "../mapping/storage.js";
 import { UseApi } from "./types.js";
-import { GenericActionCtx, GenericDataModel } from "convex/server";
+import {
+  GenericActionCtx,
+  GenericDataModel,
+  GenericMutationCtx,
+  GenericQueryCtx,
+} from "convex/server";
 export { InMemoryStorage } from "./in-memory.js";
 
-function getApi(
-  ctx: GenericActionCtx<GenericDataModel> | undefined
-): GenericActionCtx<GenericDataModel> {
-  if (!ctx) {
-    throw new Error(
-      "Context not set: ensure you're specifying the agents you" +
-        " use to the Convex WorkflowRegistry.register function options argument."
-    );
-  }
-  return ctx;
-}
-
 export class ConvexStorage extends MastraStorage {
-  public ctx: GenericActionCtx<GenericDataModel> | undefined;
-  public api: UseApi<Mounts>["storage"];
-  constructor(
-    component: UseApi<Mounts>,
-    public options?: { name?: string }
-  ) {
+  ctx: Ctx<"action" | "mutation" | "query"> | undefined;
+  api: UseApi<Mounts>["storage"];
+  constructor(component: UseApi<Mounts>, options?: { name?: string }) {
     super({ name: options?.name ?? "ConvexStorage" });
     this.api = component.storage;
     this.shouldCacheInit = true;
+  }
+
+  /**
+   * Set the context for the storage. Must be called before using the storage
+   * in a Convex function. If you are using the storage via the API, you do not
+   * need to call this.
+   *
+   * @param ctx - The context to use for the storage.
+   */
+  async setCtx(ctx: Ctx<"action" | "mutation" | "query"> | undefined) {
+    this.ctx = ctx;
+  }
+
+  getApi<T extends "action" | "mutation" | "query">(kind: T): Ctx<T> {
+    // TODO: get http client if that's specified
+    if (!this.ctx) {
+      throw new Error(
+        "Context not set: ensure you're calling storage.setCtx" +
+          " before using the storage."
+      );
+    }
+    switch (kind) {
+      case "action":
+        if (!(this.ctx as GenericActionCtx<GenericDataModel>).runAction) {
+          throw new Error("Context must be an action context to do this");
+        }
+      // fallthrough
+      case "mutation":
+        if (!(this.ctx as GenericMutationCtx<GenericDataModel>).runMutation) {
+          throw new Error("Context doesn't have a way to run mutations");
+        }
+      // fallthrough
+      case "query":
+        if (!(this.ctx as GenericQueryCtx<GenericDataModel>).runQuery) {
+          throw new Error("Context is not a query context");
+        }
+    }
+    return this.ctx as Ctx<T>;
   }
 
   async createTable(args: {
@@ -68,7 +96,7 @@ export class ConvexStorage extends MastraStorage {
   }
 
   async clearTable(args: { tableName: TABLE_NAMES }): Promise<void> {
-    const ctx = getApi(this.ctx);
+    const ctx = this.getApi("action");
     const tableName = mastraToConvexTableNames[args.tableName];
     await ctx.runAction(this.api.storage.clearTable, { tableName });
     return;
@@ -81,7 +109,7 @@ export class ConvexStorage extends MastraStorage {
   }): Promise<void> {
     const convexRecord = mapMastraToSerialized(args.tableName, args.record);
     const tableName = mastraToConvexTableNames[args.tableName];
-    const ctx = getApi(this.ctx);
+    const ctx = this.getApi("mutation");
     await ctx.runMutation(this.api.storage.insert, {
       tableName,
       document: convexRecord,
@@ -94,7 +122,7 @@ export class ConvexStorage extends MastraStorage {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     records: Record<string, any>[];
   }): Promise<void> {
-    const ctx = getApi(this.ctx);
+    const ctx = this.getApi("mutation");
     const tableName = mastraToConvexTableNames[args.tableName];
     await ctx.runMutation(this.api.storage.batchInsert, {
       tableName,
@@ -109,7 +137,7 @@ export class ConvexStorage extends MastraStorage {
     tableName: TABLE_NAMES;
     keys: Record<string, string>;
   }): Promise<R | null> {
-    const ctx = getApi(this.ctx);
+    const ctx = this.getApi("query");
     const tableName = mastraToConvexTableNames[args.tableName];
     if (args.tableName === TABLE_WORKFLOW_SNAPSHOT) {
       const { run_id, workflow_name } = args.keys;
@@ -136,7 +164,7 @@ export class ConvexStorage extends MastraStorage {
   }: {
     threadId: string;
   }): Promise<StorageThreadType | null> {
-    const ctx = getApi(this.ctx);
+    const ctx = this.getApi("query");
     const thread = await ctx.runQuery(this.api.messages.getThreadById, {
       threadId,
     });
@@ -151,7 +179,7 @@ export class ConvexStorage extends MastraStorage {
   }: {
     resourceId: string;
   }): Promise<StorageThreadType[]> {
-    const ctx = getApi(this.ctx);
+    const ctx = this.getApi("query");
     const threads: SerializedThread[] = [];
     let cursor: string | null = null;
     while (true) {
@@ -179,7 +207,7 @@ export class ConvexStorage extends MastraStorage {
   }: {
     thread: StorageThreadType;
   }): Promise<StorageThreadType> {
-    const ctx = getApi(this.ctx);
+    const ctx = this.getApi("mutation");
     await ctx.runMutation(this.api.messages.saveThread, {
       thread: mapMastraToSerialized(TABLE_THREADS, thread),
     });
@@ -195,7 +223,7 @@ export class ConvexStorage extends MastraStorage {
     title: string;
     metadata: Record<string, unknown>;
   }): Promise<StorageThreadType> {
-    const ctx = getApi(this.ctx);
+    const ctx = this.getApi("mutation");
     const thread = await ctx.runMutation(this.api.messages.updateThread, {
       threadId: id,
       title,
@@ -205,7 +233,7 @@ export class ConvexStorage extends MastraStorage {
   }
 
   async deleteThread({ threadId }: { threadId: string }): Promise<void> {
-    const ctx = getApi(this.ctx);
+    const ctx = this.getApi("mutation");
     await ctx.runMutation(this.api.messages.deleteThread, { threadId });
     return;
   }
@@ -214,7 +242,7 @@ export class ConvexStorage extends MastraStorage {
     threadId,
     selectBy,
   }: StorageGetMessagesArg): Promise<T[]> {
-    const ctx = getApi(this.ctx);
+    const ctx = this.getApi("query");
     const messages: SerializedMessage[] = await ctx.runQuery(
       this.api.messages.getMessagesPage,
       {
@@ -233,7 +261,7 @@ export class ConvexStorage extends MastraStorage {
   }: {
     messages: MessageType[];
   }): Promise<MessageType[]> {
-    const ctx = getApi(this.ctx);
+    const ctx = this.getApi("mutation");
     await ctx.runMutation(this.api.messages.saveMessages, {
       messages: messages.map((message) =>
         mapMastraToSerialized(TABLE_MESSAGES, message)
@@ -246,7 +274,7 @@ export class ConvexStorage extends MastraStorage {
     agentName: string,
     type?: "test" | "live"
   ): Promise<EvalRow[]> {
-    const ctx = getApi(this.ctx);
+    const ctx = this.getApi("query");
     const evals = await ctx.runQuery(this.api.storage.getEvalsByAgentName, {
       agentName,
       type,
@@ -268,7 +296,7 @@ export class ConvexStorage extends MastraStorage {
     const numItems = perPage ?? 100;
     const pageNum = page ?? 0;
     while (true) {
-      const ctx = getApi(this.ctx);
+      const ctx = this.getApi("query");
       const results: {
         isDone: boolean;
         continuCursor: string;
@@ -292,3 +320,11 @@ export class ConvexStorage extends MastraStorage {
       .map((trace) => mapSerializedToMastra(TABLE_TRACES, trace));
   }
 }
+
+type Ctx<T extends "action" | "mutation" | "query"> = T extends "action"
+  ? GenericActionCtx<GenericDataModel>
+  : T extends "mutation"
+    ? GenericMutationCtx<GenericDataModel>
+    : T extends "query"
+      ? GenericQueryCtx<GenericDataModel>
+      : never;
