@@ -160,14 +160,12 @@ See more example usage in [example.ts](./example/convex/nodeRuntime.ts).
 
 ### TODO before it's out of alpha
 
-- [ ] Support variable mapping for step inputs ("variables" config for steps)
-- [ ] Support conditional evaluation ("when" config for steps)
+- [ ] Support "until" and "while" loops
 - [ ] Return the same output format as Mastra `start` / `resume`.
-- [ ] Should we add `resumeAsync`? It's currently async only.
-- [ ] Validate the trigger data later to surface a better error message.
 - [ ] Validate the Storage and Vector implementations (from Convex).
-- [ ] Detect infinite loops at runtime. They don't yet do cycle detection at
-      runtime or initialization time, and for dynamic "when" it's not possible.
+- [ ] Detect infinite loops at runtime. Mastra has no cycle detection at
+      runtime or initialization time yet.
+      In the case of dynamic "when" it's not possible to determine statically.
 - [ ] Performance optimizations
   - [ ] Re-use the workflowd config document if it hasn't changed.
   - [ ] Assume the workflow config is valid and fetch configuration lazily o.w.
