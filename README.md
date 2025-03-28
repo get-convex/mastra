@@ -128,6 +128,37 @@ export const myAction = action({
 })
 ```
 
+Querying the status reactively from a non-node file:
+
+```ts
+import { query } from "./_generated/server";
+import { components } from "./_generated/api";
+import { v } from "convex/values";
+import {
+  mapSerializedToMastra,
+  TABLE_WORKFLOW_SNAPSHOT,
+} from "@convex-dev/mastra/mapping";
+
+export const getStatus = query({
+  args: { runId: v.string() },
+  handler: async (ctx, args) => {
+    const doc = await ctx.runQuery(
+      components.mastra.storage.storage.loadSnapshot,
+      {
+        workflowName: "weatherToOutfitWorkflow",
+        runId: args.runId,
+      }
+    );
+    if (!doc) {
+      return null;
+    }
+    const snapshot = mapSerializedToMastra(TABLE_WORKFLOW_SNAPSHOT, doc);
+    const { childStates, activePaths, suspendedSteps } = snapshot.snapshot;
+    return { childStates, activePaths, suspendedSteps };
+  },
+});
+```
+
 See more example usage in [example.ts](./example/convex/nodeRuntime.ts).
 
 ## Limitations
@@ -140,16 +171,19 @@ See more example usage in [example.ts](./example/convex/nodeRuntime.ts).
    asynchronously, but you can only await the result in an action.
    Querying for the status in a query will subscribe to the status, but
    you can't poll for the status from within a transaction (query or mutation).
+1. To reactively query for the status of a workflow, you need to call the
+   component API directly. There's an example above and in
+   [v8Runtime.ts](./example/convex/v8Runtime.ts).
 
 ### TODO before it's out of alpha
 
 - [ ] Validate the Storage and Vector implementations (from Convex).
-- [ ] Support queries on workflow state.
 
 ### TODO before it's out of beta
 
 - [ ] Support using Storage and Vector from `mastra dev`.
 - [ ] Configurable vacuuming of workflow state.
+- [ ] Support queries on workflow state without hitting the component directly.
 
 ### Backlog:
 

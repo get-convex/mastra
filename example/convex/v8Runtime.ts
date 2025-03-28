@@ -1,10 +1,10 @@
-import { action, mutation, query } from "./_generated/server";
-import { components, internal } from "./_generated/api";
+import { query } from "./_generated/server";
+import { components } from "./_generated/api";
 import { v } from "convex/values";
 import {
   mapSerializedToMastra,
   TABLE_WORKFLOW_SNAPSHOT,
-} from "../../src/mapping/storage";
+} from "@convex-dev/mastra/mapping";
 
 export const getStatus = query({
   args: { runId: v.string() },

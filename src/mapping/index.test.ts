@@ -23,7 +23,7 @@ import type {
   SerializedThread,
   vSerializedMessage,
   vSerializedThread,
-} from "./storage";
+} from ".";
 
 // type assertsions
 const _tableNames: ORIGINAL_TABLE_NAMES = "" as NEW_TABLE_NAMES;

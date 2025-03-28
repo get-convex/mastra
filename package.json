@@ -82,6 +82,18 @@
         "default": "./dist/commonjs/client/storage.js"
       }
     },
+    "./mapping": {
+      "import": {
+        "@convex-dev/component-source": "./src/mapping/index.ts",
+        "types": "./dist/esm/mapping/index.d.ts",
+        "default": "./dist/esm/mapping/index.js"
+      },
+      "require": {
+        "@convex-dev/component-source": "./src/mapping/index.ts",
+        "types": "./dist/commonjs/mapping/index.d.ts",
+        "default": "./dist/commonjs/mapping/index.js"
+      }
+    },
     "./react": {
       "import": {
         "@convex-dev/component-source": "./src/react/index.ts",

@@ -32,7 +32,7 @@ import {
   SerializedMessage,
   SerializedThread,
   SerializedTrace,
-} from "../mapping/storage.js";
+} from "../mapping/index.js";
 import { UseApi } from "./types.js";
 
 export class ConvexStorage extends MastraStorage {

@@ -6,7 +6,7 @@ import {
   type SerializedThread,
   vSerializedMessage,
   vSerializedThread,
-} from "../../mapping/storage.js";
+} from "../../mapping/index.js";
 import { paginator } from "convex-helpers/server/pagination";
 import schema from "../schema.js";
 
