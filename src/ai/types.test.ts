@@ -1,4 +1,5 @@
 import { Infer } from "convex/values";
+import { test } from "vitest";
 import {
   SerializeUrlsAndUint8Arrays,
   vAssistantContent,
@@ -73,3 +74,5 @@ const _redactedReasoningPart: Infer<typeof vRedactedReasoningPart> =
 const _redactedReasoningPart2: OurRedactedReasoningPart = {} as Infer<
   typeof vRedactedReasoningPart
 >;
+
+test("noop", () => {});
