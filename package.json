@@ -104,7 +104,7 @@
   },
   "peerDependencies": {
     "@convex-dev/workpool": "^0.2.6",
-    "@mastra/core": "^0.6.4",
+    "@mastra/core": "^0.6.0 || ^0.7.0",
     "ai": "^4.2.0",
     "convex": ">=1.21.0 <1.25.0",
     "convex-helpers": "^0.1.74",
