@@ -15,9 +15,6 @@ import type * as storage_storage from "../storage/storage.js";
 import type * as storage_tables from "../storage/tables.js";
 import type * as vector_tables from "../vector/tables.js";
 import type * as vector_vector from "../vector/vector.js";
-import type * as workflow_index from "../workflow/index.js";
-import type * as workflow_lib from "../workflow/lib.js";
-import type * as workflow_types from "../workflow/types.js";
 
 import type {
   ApiFromModules,
@@ -41,9 +38,6 @@ declare const fullApi: ApiFromModules<{
   "storage/tables": typeof storage_tables;
   "vector/tables": typeof vector_tables;
   "vector/vector": typeof vector_vector;
-  "workflow/index": typeof workflow_index;
-  "workflow/lib": typeof workflow_lib;
-  "workflow/types": typeof workflow_types;
 }>;
 export type Mounts = {
   storage: {
@@ -492,72 +486,6 @@ export type Mounts = {
           vectors: Array<Array<number>>;
         },
         Array<string>
-      >;
-    };
-  };
-  workflow: {
-    index: {
-      create: FunctionReference<
-        "mutation",
-        "public",
-        {
-          logLevel: "DEBUG" | "TRACE" | "INFO" | "REPORT" | "WARN" | "ERROR";
-          workflow: { fnHandle: string; fnName: string };
-          workpoolLogLevel:
-            | "DEBUG"
-            | "TRACE"
-            | "INFO"
-            | "REPORT"
-            | "WARN"
-            | "ERROR";
-        },
-        string
-      >;
-      resume: FunctionReference<
-        "mutation",
-        "public",
-        { resumeData?: any; stepId: string; workflowId: string },
-        null
-      >;
-      start: FunctionReference<
-        "mutation",
-        "public",
-        { triggerData?: any; workflowId: string },
-        null
-      >;
-      status: FunctionReference<
-        "query",
-        "public",
-        { workflowId: string },
-        null | {
-          activeBranches?: Array<{
-            target:
-              | { branch: string; id: string; index: number; kind: "default" }
-              | {
-                  branch: string;
-                  event: string;
-                  id: string;
-                  index: number;
-                  kind: "subscriber";
-                };
-            workId: string;
-          }>;
-          status: "created" | "pending" | "started" | "finished";
-          stepStates?: Array<{
-            _creationTime: number;
-            _id: string;
-            id: string;
-            order: number;
-            orderAtStart: number;
-            state:
-              | { status: "waiting" }
-              | { status: "suspended"; suspendPayload?: any }
-              | { status: "skipped" }
-              | { output?: any; status: "success" }
-              | { error: string; status: "failed" };
-            workflowId: string;
-          }>;
-        }
       >;
     };
   };

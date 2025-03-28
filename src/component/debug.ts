@@ -9,6 +9,7 @@ import {
 import { logLevel } from "./logger.js";
 import { api, internal } from "./_generated/api";
 import { TableNames } from "./_generated/dataModel";
+import { mapSerializedToMastra, TABLE_WORKFLOW_SNAPSHOT } from "../mapping";
 
 export const debugOverrideLogLevel = internalMutation({
   args: {
@@ -33,12 +34,7 @@ export const debugOverrideLogLevel = internalMutation({
 export const deleteAll = internalAction({
   args: {},
   handler: async (ctx) => {
-    await Promise.all([
-      deleteTable(ctx, "workflows"),
-      deleteTable(ctx, "workflowConfigs"),
-      deleteTable(ctx, "stepStates"),
-      deleteTable(ctx, "config"),
-    ]);
+    await Promise.all([deleteTable(ctx, "config")]);
   },
   returns: v.null(),
 });
@@ -79,13 +75,12 @@ export const deletePage = internalMutation({
 export const getLatestWorkflowStatus = internalQuery({
   args: {},
   handler: async (ctx, args): Promise<unknown> => {
-    const workflows = await ctx.db.query("workflows").order("desc").first();
-    if (!workflows) {
+    const latest = await ctx.db.query("snapshots").order("desc").first();
+    if (!latest) {
       return;
     }
-    return ctx.runQuery(api.workflow.index.status, {
-      workflowId: workflows?._id,
-    });
+    const workflow = mapSerializedToMastra(TABLE_WORKFLOW_SNAPSHOT, latest);
+    return workflow.snapshot;
   },
   returns: v.any(),
 });
