@@ -7,8 +7,7 @@ import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { weatherAgent, outfitAgent } from "../src/mastra/agents";
 import { weatherToOutfitWorkflow } from "../src/mastra/workflows";
-import { ConvexStorage } from "@convex-dev/mastra/storage";
-import { ConvexVector } from "@convex-dev/mastra/vector";
+import { ConvexStorage, ConvexVector } from "@convex-dev/mastra";
 
 // TODO: is this still necessary?
 import crypto from "crypto";

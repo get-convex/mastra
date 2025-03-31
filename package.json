@@ -46,28 +46,16 @@
         "default": "./dist/commonjs/client/index.js"
       }
     },
-    "./vector": {
+    "./client": {
       "import": {
-        "@convex-dev/component-source": "./src/client/vector.ts",
-        "types": "./dist/esm/client/vector.d.ts",
-        "default": "./dist/esm/client/vector.js"
+        "@convex-dev/component-source": "./src/client/client.ts",
+        "types": "./dist/esm/client/client.d.ts",
+        "default": "./dist/esm/client/client.js"
       },
       "require": {
-        "@convex-dev/component-source": "./src/client/vector.ts",
-        "types": "./dist/commonjs/client/vector.d.ts",
-        "default": "./dist/commonjs/client/vector.js"
-      }
-    },
-    "./storage": {
-      "import": {
-        "@convex-dev/component-source": "./src/client/storage.ts",
-        "types": "./dist/esm/client/storage.d.ts",
-        "default": "./dist/esm/client/storage.js"
-      },
-      "require": {
-        "@convex-dev/component-source": "./src/client/storage.ts",
-        "types": "./dist/commonjs/client/storage.d.ts",
-        "default": "./dist/commonjs/client/storage.js"
+        "@convex-dev/component-source": "./src/client/client.ts",
+        "types": "./dist/commonjs/client/client.d.ts",
+        "default": "./dist/commonjs/client/client.js"
       }
     },
     "./mapping": {
