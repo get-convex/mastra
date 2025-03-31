@@ -25,7 +25,11 @@ export const debugOverrideLogLevel = internalMutation({
         },
       });
     } else {
-      throw Error("No existing config to patch.");
+      await ctx.db.insert("config", {
+        config: {
+          logLevel: args.logLevel,
+        },
+      });
     }
   },
   returns: v.null(),
