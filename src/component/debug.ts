@@ -7,7 +7,7 @@ import {
 } from "./_generated/server";
 
 import { logLevel } from "./logger.js";
-import { api, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { TableNames } from "./_generated/dataModel";
 import { mapSerializedToMastra, TABLE_WORKFLOW_SNAPSHOT } from "../mapping";
 
@@ -78,7 +78,7 @@ export const deletePage = internalMutation({
 
 export const getLatestWorkflowStatus = internalQuery({
   args: {},
-  handler: async (ctx, args): Promise<unknown> => {
+  handler: async (ctx): Promise<unknown> => {
     const latest = await ctx.db.query("snapshots").order("desc").first();
     if (!latest) {
       return;

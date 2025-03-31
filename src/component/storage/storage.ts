@@ -7,7 +7,6 @@ import {
   internalMutation,
   mutation,
   query,
-  QueryCtx,
 } from "../_generated/server.js";
 import { paginator } from "convex-helpers/server/pagination";
 import schema from "../schema.js";

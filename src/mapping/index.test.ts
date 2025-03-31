@@ -7,10 +7,6 @@ import { Content } from "../ai/types";
 import {
   TABLE_NAMES as NEW_TABLE_NAMES,
   SerializedContent,
-  SerializedMessage,
-  SerializedThread,
-  vSerializedMessage,
-  vSerializedThread,
   TABLE_WORKFLOW_SNAPSHOT,
   TABLE_EVALS,
   TABLE_MESSAGES,
@@ -22,7 +18,6 @@ import {
   deserializeContent,
 } from "./index.js";
 import assert from "assert";
-import { TestInfo } from "@mastra/core";
 
 // Type compatibility tests
 const _tableNames: ORIGINAL_TABLE_NAMES = "" as NEW_TABLE_NAMES;

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { Doc } from "../_generated/dataModel.js";
-import { mutation, query, QueryCtx } from "../_generated/server.js";
+import { mutation, query } from "../_generated/server.js";
 import {
   type SerializedMessage,
   type SerializedThread,

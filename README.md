@@ -159,7 +159,7 @@ export const getStatus = query({
 });
 ```
 
-See more example usage in [example.ts](./example/convex/nodeRuntime.ts).
+See more example usage in [example.ts](./example/convex/example.ts).
 
 ## Limitations
 
