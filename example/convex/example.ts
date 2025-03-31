@@ -41,7 +41,10 @@ const summarize = createStep({
         : ""
     );
     if (!guidance) {
-      await suspend({ ask: "Does this look good?" });
+      await suspend({
+        ask: "Does this look good?",
+        result: result.response.messages,
+      });
     }
     return result.text;
   },
@@ -186,7 +189,7 @@ const workflow = new Workflow({
     when: { "RetryOnce.status": "retry" },
   })
   .step(RetryOnce)
-  .until(async ({ context }) => context.getStepResult("Counter") === 5, Counter)
+  // .until(async ({ context }) => context.getStepResult("Counter").count >= 5, Counter)
   .step(E, {
     when: {
       ref: {
@@ -267,17 +270,19 @@ type M = ReturnType<typeof mastra.getAgent<"weatherAgent">>;
 
 export const startWorkflow = internalAction({
   args: {
-    runId: v.string(),
-    name: v.union(v.literal("workflow"), v.literal("weatherToOutfitWorkflow")),
-    initialData: v.any(),
+    runId: v.optional(v.string()),
+    name: v.optional(
+      v.union(v.literal("workflow"), v.literal("weatherToOutfitWorkflow"))
+    ),
+    initialData: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     storage.ctx = ctx;
-    const w = mastra.getWorkflow(args.name);
-    const { start } = await w.createRun({ runId: args.runId });
+    const w = mastra.getWorkflow(args.name ?? "workflow");
+    const { start } = w.createRun({ runId: args.runId });
     const result = await start(args.initialData);
     // Save the result somewhere
-    return result;
+    return result.results;
   },
 });
 
