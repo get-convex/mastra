@@ -11,7 +11,7 @@ import {
 } from "../_generated/server.js";
 import { paginator } from "convex-helpers/server/pagination";
 import schema from "../schema.js";
-import { createLogger, Logger } from "../logger.js";
+import { createLogger, makeConsole } from "../logger.js";
 
 interface StorageColumn {
   type: "text" | "timestamp" | "uuid" | "jsonb" | "integer" | "bigint";
@@ -84,7 +84,7 @@ export const insert = mutation({
     document: v.any(),
   },
   handler: async (ctx, args) => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(`Inserting ${args.tableName}`, args.document);
     // TODO: split out into inserts per usecase and enforce unique constraints
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -99,7 +99,7 @@ export const batchInsert = mutation({
     records: v.array(v.any()),
   },
   handler: async (ctx, args) => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(`Batch inserting ${args.tableName}`, args.records);
     await Promise.all(
       args.records.map(async (record) => {
@@ -117,7 +117,7 @@ export const loadSnapshot = query({
     workflowName: v.string(),
   },
   handler: async (ctx, args) => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(
       `Loading snapshot for ${args.runId} and ${args.workflowName}`
     );
@@ -143,7 +143,7 @@ export const load = query({
     keys: v.any(),
   },
   handler: async (ctx, args) => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(`Loading ${args.tableName}`, args.keys);
     if (args)
       throw new Error(
@@ -156,7 +156,8 @@ export const load = query({
 export const clearTable = action({
   args: { tableName: v.string() },
   handler: async (ctx, args) => {
-    const console = createLogger();
+    const logLevel = await ctx.runQuery(internal.logger.getLogLevel);
+    const console = createLogger(logLevel);
     console.debug(`Clearing ${args.tableName}`);
     let cursor: string | null = null;
     while (true) {
@@ -180,7 +181,7 @@ export const clearTable = action({
 export const clearPage = internalMutation({
   args: { tableName: v.string(), cursor: v.union(v.string(), v.null()) },
   handler: async (ctx, args): Promise<string | null> => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const page = await ctx.db.query(args.tableName as any).paginate({
       numItems: 1000,
@@ -206,7 +207,7 @@ export const getEvalsByAgentName = query({
     type: v.optional(v.union(v.literal("test"), v.literal("live"))),
   },
   handler: async (ctx, args) => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(`Getting evals by name ${args.agentName}, type ${args.type}`);
     const evals = await ctx.db
       .query("evals")
@@ -238,7 +239,7 @@ export const getTracesPage = query({
     attributes: v.optional(v.record(v.string(), v.string())),
   },
   handler: async (ctx, args) => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(
       `Getting traces page with name ${args.name}, scope ${args.scope}, cursor ${args.cursor}, numItems ${args.numItems}, attributes ${args.attributes}`
     );
@@ -285,4 +286,4 @@ export const getTracesPage = query({
 });
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const console = "THIS IS A REMINDER TO USE createLogger";
+const console = "THIS IS A REMINDER TO USE makeConsole";

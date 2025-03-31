@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { Doc } from "../_generated/dataModel.js";
-import { mutation, query } from "../_generated/server.js";
+import { mutation, query, QueryCtx } from "../_generated/server.js";
 import {
   type SerializedMessage,
   type SerializedThread,
@@ -9,7 +9,7 @@ import {
 } from "../../mapping/index.js";
 import { paginator } from "convex-helpers/server/pagination";
 import schema from "../schema.js";
-import { createLogger } from "../logger.js";
+import { makeConsole } from "../logger.js";
 
 function threadToSerializedMastra(thread: Doc<"threads">): SerializedThread {
   const { id, title, metadata, resourceId, createdAt, updatedAt } = thread;
@@ -19,7 +19,7 @@ function threadToSerializedMastra(thread: Doc<"threads">): SerializedThread {
 export const getThreadById = query({
   args: { threadId: v.string() },
   handler: async (ctx, args) => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(`Getting thread by id ${args.threadId}`);
     const thread = await ctx.db
       .query("threads")
@@ -47,7 +47,7 @@ export const getThreadsByResourceId = query({
     continueCursor: string;
     isDone: boolean;
   }> => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(`Getting threads by resource id ${args.resourceId}`);
     const threads = await paginator(ctx.db, schema)
       .query("threads")
@@ -73,7 +73,7 @@ export const getThreadsByResourceId = query({
 export const saveThread = mutation({
   args: { thread: vSerializedThread },
   handler: async (ctx, args) => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(`Saving thread ${args.thread.id}`);
     await ctx.db.insert("threads", args.thread);
   },
@@ -87,7 +87,7 @@ export const updateThread = mutation({
     metadata: v.optional(v.record(v.string(), v.any())),
   },
   handler: async (ctx, args) => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(`Updating thread ${args.threadId}`);
     const thread = await ctx.db
       .query("threads")
@@ -118,7 +118,7 @@ export const updateThread = mutation({
 export const deleteThread = mutation({
   args: { threadId: v.string() },
   handler: async (ctx, args) => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(`Deleting thread ${args.threadId}`);
     const thread = await ctx.db
       .query("threads")
@@ -192,7 +192,7 @@ export const getMessagesPage = query({
     // memoryConfig: v.optional(vMemoryConfig),
   },
   handler: async (ctx, args): Promise<SerializedMessage[]> => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(`Getting messages page for thread ${args.threadId}`);
     const messages = await ctx.db
       .query("messages")
@@ -274,7 +274,7 @@ export const getMessagesPage = query({
 export const saveMessages = mutation({
   args: { messages: v.array(vSerializedMessage) },
   handler: async (ctx, args) => {
-    const console = createLogger();
+    const console = await makeConsole(ctx);
     console.debug(`Saving messages ${args.messages.length}`);
     const messagesByThreadId: Record<string, SerializedMessage[]> = {};
     for (const message of args.messages) {
@@ -303,4 +303,4 @@ export const saveMessages = mutation({
 });
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const console = "THIS IS A REMINDER TO USE createLogger";
+const console = "THIS IS A REMINDER TO USE makeConsole";

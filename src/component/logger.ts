@@ -1,4 +1,5 @@
 import { Infer, v } from "convex/values";
+import { internalQuery, QueryCtx } from "./_generated/server";
 
 export const DEFAULT_LOG_LEVEL: LogLevel = "INFO";
 
@@ -42,9 +43,8 @@ const REPORT = logLevelByName["REPORT"];
 const WARN = logLevelByName["WARN"];
 const ERROR = logLevelByName["ERROR"];
 
-export function createLogger(level?: LogLevel): Logger {
-  const logLevel =
-    level ?? (process.env.LOG_LEVEL as LogLevel) ?? DEFAULT_LOG_LEVEL;
+export function createLogger(level: LogLevel | undefined): Logger {
+  const logLevel = level ?? DEFAULT_LOG_LEVEL;
   const levelIndex = logLevelByName[logLevel];
   if (levelIndex === undefined) {
     throw new Error(`Invalid log level: ${level}`);
@@ -95,3 +95,18 @@ export function createLogger(level?: LogLevel): Logger {
     logLevel,
   };
 }
+
+export async function makeConsole(ctx: QueryCtx) {
+  const config = await ctx.db.query("config").first();
+  const console = createLogger(config?.config.logLevel);
+  return console;
+}
+
+export const getLogLevel = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const config = await ctx.db.query("config").first();
+    return config?.config.logLevel ?? DEFAULT_LOG_LEVEL;
+  },
+  returns: logLevel,
+});
