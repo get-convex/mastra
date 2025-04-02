@@ -167,10 +167,9 @@ See more example usage in [example.ts](./example/convex/example.ts).
    `convex dev` in Node 18.
    If you see issues about syscalls at import time, try using the cloud dev
    environment instead.
-1. Due to the nature of mutations, you can create, start, and resume workflows
-   asynchronously, but you can only await the result in an action.
-   Querying for the status in a query will subscribe to the status, but
-   you can't poll for the status from within a transaction (query or mutation).
+1. Currently you can only interact with Mastra classes from Node actions, so
+   you can't start them from a mutation without doing it indirectly via the
+   Scheduler or Workpool by enqueuing the node action to run.
 1. To reactively query for the status of a workflow, you need to call the
    component API directly. There's an example above and in
    [v8Runtime.ts](./example/convex/v8Runtime.ts).
@@ -178,6 +177,7 @@ See more example usage in [example.ts](./example/convex/example.ts).
 ### TODO before it's out of alpha
 
 - [ ] Validate the Storage and Vector implementations (from Convex).
+- [ ] Ensure @mastra/memory can be bundled in Convex.
 
 ### TODO before it's out of beta
 
@@ -233,7 +233,13 @@ If you see an error like this:
 ✘ [ERROR] No loader is configured for ".node" files: node_modules/onnxruntime-node/bin/napi-v3/win32/arm64/onnxruntime_binding.nodel
 ```
 
-Delete your `node_modules` and `package-lock.json` and re-install using node 18.
+You're likely importing some node package through a dependency that isn't
+supported. One workaround is to add it as an explicit dependency, then add it
+to the `externalPackages` in a `convex.json` file in the root of your project,
+then export something from it, similar to `@libsql/client` above
+
+You can also try deleting your `node_modules` and `package-lock.json` and
+re-installing using node 18.
 
 ### Errors about node packages not being available
 
