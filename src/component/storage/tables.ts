@@ -1,26 +1,12 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-import { vAssistantContent, vToolContent, vUserContent } from "../../ai/types";
+import { vSerializedMessage } from "../../mapping";
 
 const storageSchema = {
   // messages.ts
   messages: defineTable({
-    id: v.string(), // TODO: can we juse the _id?
-    threadId: v.string(), // TODO: can we use v.id("threads")?
+    ...vSerializedMessage.fields,
     threadOrder: v.number(),
-    content: v.union(vUserContent, vAssistantContent, vToolContent),
-    role: v.union(
-      v.literal("system"),
-      v.literal("user"),
-      v.literal("assistant"),
-      v.literal("tool")
-    ),
-    type: v.union(
-      v.literal("text"),
-      v.literal("tool-call"),
-      v.literal("tool-result")
-    ),
-    createdAt: v.number(),
   })
     .index("id", ["id"])
     .index("threadId", ["threadId", "threadOrder"]),

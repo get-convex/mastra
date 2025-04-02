@@ -90,8 +90,12 @@ export type SerializedMessage = Omit<MessageType, "createdAt" | "content"> & {
 
 export const vSerializedMessage = v.object({
   id: v.string(),
-  threadId: v.string(),
   content: vContent,
+  threadId: v.string(),
+  resourceId: v.string(),
+  toolCallIds: v.optional(v.array(v.string())),
+  toolCallArgs: v.optional(v.array(v.record(v.string(), v.any()))),
+  toolNames: v.optional(v.array(v.string())),
   role: v.union(
     v.literal("system"),
     v.literal("user"),
@@ -208,6 +212,10 @@ export function mapMastraToSerialized<T extends TABLE_NAMES>(
       const serialized: SerializedMessage = {
         id: row.id,
         threadId: row.threadId,
+        resourceId: row.resourceId,
+        toolCallIds: row.toolCallIds,
+        toolCallArgs: row.toolCallArgs,
+        toolNames: row.toolNames,
         content: serializeContent(row.content),
         role: row.role,
         type: row.type,
@@ -367,6 +375,10 @@ export function mapSerializedToMastra<T extends TABLE_NAMES>(
         role: serialized.role,
         type: serialized.type,
         createdAt: new Date(serialized.createdAt),
+        resourceId: serialized.resourceId,
+        toolCallIds: serialized.toolCallIds,
+        toolCallArgs: serialized.toolCallArgs,
+        toolNames: serialized.toolNames,
       };
       return messageRow as MastraRowTypeMap[T];
     }

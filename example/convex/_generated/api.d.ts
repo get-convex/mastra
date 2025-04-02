@@ -170,8 +170,12 @@ export declare const components: {
                 }>;
             createdAt: number;
             id: string;
+            resourceId: string;
             role: "system" | "user" | "assistant" | "tool";
             threadId: string;
+            toolCallArgs?: Array<Record<string, any>>;
+            toolCallIds?: Array<string>;
+            toolNames?: Array<string>;
             type: "text" | "tool-call" | "tool-result";
           }>
         >;
@@ -312,8 +316,12 @@ export declare const components: {
                   }>;
               createdAt: number;
               id: string;
+              resourceId: string;
               role: "system" | "user" | "assistant" | "tool";
               threadId: string;
+              toolCallArgs?: Array<Record<string, any>>;
+              toolCallIds?: Array<string>;
+              toolNames?: Array<string>;
               type: "text" | "tool-call" | "tool-result";
             }>;
           },
