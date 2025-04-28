@@ -170,7 +170,7 @@ export const search = action({
 
     const results = await ctx.vectorSearch(index.tableName, "vector", {
       vector: queryVector,
-      limit: Math.max(topK * 10 * Object.keys(filter ?? {}).length, 1024),
+      limit: Math.max(topK * 2 * (1 + Object.keys(filter ?? {}).length), 256),
       filter: filter
         ? (q) => {
             return q.eq("indexName", index.indexName);
