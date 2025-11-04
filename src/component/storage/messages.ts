@@ -179,7 +179,10 @@ function messageToSerializedMastra(
   message: Doc<"messages">
 ): SerializedMessage {
   const { threadOrder: _, _id, _creationTime, ...serialized } = message;
-  return serialized;
+  return {
+    ...serialized,
+    resourceId: serialized.resourceId ?? "",
+  };
 }
 
 const DEFAULT_MESSAGES_LIMIT = 40; // What pg & upstash do too.

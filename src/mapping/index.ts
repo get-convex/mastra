@@ -86,6 +86,7 @@ export type SerializedContent = SerializeUrlsAndUint8Arrays<
 export const vSerializedMessage = v.object({
   id: v.string(),
   threadId: v.string(),
+  resourceId: v.string(),
   content: vContent,
   role: v.union(
     v.literal("system"),
@@ -209,6 +210,7 @@ export function mapMastraToSerialized<T extends TABLE_NAMES>(
       const serialized: SerializedMessage = {
         id: row.id,
         threadId: row.threadId,
+        resourceId: row.resourceId,
         content: serializeContent(row.content),
         role: row.role,
         type: row.type,
@@ -364,6 +366,7 @@ export function mapSerializedToMastra<T extends TABLE_NAMES>(
       const messageRow: MessageType = {
         id: serialized.id,
         threadId: serialized.threadId,
+        resourceId: serialized.resourceId,
         content: serialized.content,
         role: serialized.role,
         type: serialized.type,

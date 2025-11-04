@@ -8,6 +8,7 @@ const storageSchema = {
     id: v.string(), // TODO: can we juse the _id?
     threadId: v.string(), // TODO: can we use v.id("threads")?
     threadOrder: v.number(),
+    resourceId: v.optional(v.string()),
     content: v.union(vUserContent, vAssistantContent, vToolContent),
     role: v.union(
       v.literal("system"),
