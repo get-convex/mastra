@@ -1,5 +1,3 @@
-import type { Mounts } from "../component/_generated/api.js";
-import { UseApi } from "./types.js";
 import { MastraVector } from "@mastra/core";
 import { SupportedTableName } from "../component/vector/tables.js";
 import {
@@ -8,14 +6,15 @@ import {
   GenericQueryCtx,
 } from "convex/server";
 import { GenericActionCtx } from "convex/server";
+import { ComponentApi } from "../component/_generated/component.js";
 export { InMemoryVector } from "./in-memory.js";
 
 export class ConvexVector extends MastraVector {
   ctx: Ctx<"action" | "mutation" | "query"> | undefined;
-  api: UseApi<Mounts>["vector"];
+  api: ComponentApi["vector"];
 
   constructor(
-    component: UseApi<Mounts>,
+    component: ComponentApi,
     public options?: { name?: string }
   ) {
     super();

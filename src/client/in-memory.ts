@@ -1,4 +1,8 @@
-import type { MessageType, StorageThreadType } from "@mastra/core";
+import type {
+  MessageType,
+  StorageThreadType,
+  WorkflowRuns,
+} from "@mastra/core";
 import type {
   EvalRow,
   StorageColumn,
@@ -76,6 +80,18 @@ export class InMemoryStorage extends MastraStorage {
     } else {
       this.tables[tableName].push(record);
     }
+  }
+
+  async getWorkflowRuns(args?: {
+    namespace?: string;
+    workflowName?: string;
+    fromDate?: Date;
+    toDate?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<WorkflowRuns> {
+    // TODO: implement
+    return { runs: [], total: 0 };
   }
 
   async insert({

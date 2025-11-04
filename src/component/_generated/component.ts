@@ -1,6 +1,6 @@
 /* eslint-disable */
 /**
- * Generated `api` utility.
+ * Generated `ComponentApi` utility.
  *
  * THIS CODE IS AUTOMATICALLY GENERATED.
  *
@@ -8,49 +8,27 @@
  * @module
  */
 
-import type * as _libsql_workaround from "../_libsql_workaround.js";
-import type * as example from "../example.js";
-import type * as v8Runtime from "../v8Runtime.js";
-
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
+import type { FunctionReference } from "convex/server";
 
 /**
- * A utility for referencing Convex functions in your app's API.
+ * A utility for referencing a Convex component's API.
  *
  * Usage:
  * ```js
- * const myFunctionReference = api.myModule.myFunction;
+ * export type MyComponentApi = ComponentApi;
  * ```
  */
-declare const fullApi: ApiFromModules<{
-  _libsql_workaround: typeof _libsql_workaround;
-  example: typeof example;
-  v8Runtime: typeof v8Runtime;
-}>;
-declare const fullApiWithMounts: typeof fullApi;
 
-export declare const api: FilterApi<
-  typeof fullApiWithMounts,
-  FunctionReference<any, "public">
->;
-export declare const internal: FilterApi<
-  typeof fullApiWithMounts,
-  FunctionReference<any, "internal">
->;
-
-export declare const components: {
-  mastra: {
+export type ComponentApi<Name extends string | undefined = string | undefined> =
+  {
     storage: {
       messages: {
         deleteThread: FunctionReference<
           "mutation",
           "internal",
           { threadId: string },
-          null
+          null,
+          Name
         >;
         getMessagesPage: FunctionReference<
           "query",
@@ -174,7 +152,8 @@ export declare const components: {
             role: "system" | "user" | "assistant" | "tool";
             threadId: string;
             type: "text" | "tool-call" | "tool-result";
-          }>
+          }>,
+          Name
         >;
         getThreadById: FunctionReference<
           "query",
@@ -187,7 +166,8 @@ export declare const components: {
             resourceId: string;
             title?: string;
             updatedAt: number;
-          } | null
+          } | null,
+          Name
         >;
         getThreadsByResourceId: FunctionReference<
           "query",
@@ -204,7 +184,8 @@ export declare const components: {
               title?: string;
               updatedAt: number;
             }>;
-          }
+          },
+          Name
         >;
         saveMessages: FunctionReference<
           "mutation",
@@ -319,7 +300,8 @@ export declare const components: {
               type: "text" | "tool-call" | "tool-result";
             }>;
           },
-          null
+          null,
+          Name
         >;
         saveThread: FunctionReference<
           "mutation",
@@ -334,7 +316,8 @@ export declare const components: {
               updatedAt: number;
             };
           },
-          null
+          null,
+          Name
         >;
         updateThread: FunctionReference<
           "mutation",
@@ -347,7 +330,8 @@ export declare const components: {
             resourceId: string;
             title?: string;
             updatedAt: number;
-          }
+          },
+          Name
         >;
       };
       storage: {
@@ -355,13 +339,15 @@ export declare const components: {
           "mutation",
           "internal",
           { records: Array<any>; tableName: string },
-          null
+          null,
+          Name
         >;
         clearTable: FunctionReference<
           "action",
           "internal",
           { tableName: string },
-          null
+          null,
+          Name
         >;
         getEvalsByAgentName: FunctionReference<
           "query",
@@ -378,7 +364,8 @@ export declare const components: {
             result: any;
             runId: string;
             testInfo?: any;
-          }>
+          }>,
+          Name
         >;
         getTracesPage: FunctionReference<
           "query",
@@ -409,19 +396,22 @@ export declare const components: {
               status?: any;
               traceId: string;
             }>;
-          }
+          },
+          Name
         >;
         insert: FunctionReference<
           "mutation",
           "internal",
           { document: any; tableName: string },
-          null
+          null,
+          Name
         >;
         load: FunctionReference<
           "query",
           "internal",
           { keys: any; tableName: string },
-          any | null
+          any | null,
+          Name
         >;
         loadSnapshot: FunctionReference<
           "query",
@@ -433,7 +423,8 @@ export declare const components: {
             snapshot: string;
             updatedAt: number;
             workflowName: string;
-          } | null
+          } | null,
+          Name
         >;
       };
     };
@@ -455,13 +446,15 @@ export declare const components: {
               | 4096;
             indexName: string;
           },
-          null
+          null,
+          Name
         >;
         deleteIndex: FunctionReference<
           "action",
           "internal",
           { indexName: string },
-          null
+          null,
+          Name
         >;
         describeIndex: FunctionReference<
           "query",
@@ -471,9 +464,16 @@ export declare const components: {
             count: number;
             dimension: 128 | 256 | 512 | 768 | 1024 | 1536 | 2048 | 3072 | 4096;
             metric: "cosine";
-          }
+          },
+          Name
         >;
-        listIndexes: FunctionReference<"query", "internal", {}, Array<string>>;
+        listIndexes: FunctionReference<
+          "query",
+          "internal",
+          {},
+          Array<string>,
+          Name
+        >;
         search: FunctionReference<
           "action",
           "internal",
@@ -489,7 +489,8 @@ export declare const components: {
             metadata?: Record<string, any>;
             score: number;
             vector?: Array<number>;
-          }>
+          }>,
+          Name
         >;
         upsert: FunctionReference<
           "mutation",
@@ -500,9 +501,9 @@ export declare const components: {
             metadata?: Array<Record<string, any>>;
             vectors: Array<Array<number>>;
           },
-          Array<string>
+          Array<string>,
+          Name
         >;
       };
     };
   };
-};

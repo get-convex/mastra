@@ -1,6 +1,12 @@
 /* Type utils follow */
 
-import { Expand, FunctionReference, GenericActionCtx } from "convex/server";
+import {
+  Expand,
+  FunctionArgs,
+  FunctionReference,
+  FunctionReturnType,
+  GenericActionCtx,
+} from "convex/server";
 
 import { GenericMutationCtx } from "convex/server";
 
@@ -22,31 +28,23 @@ export type RunActionCtx = {
   runAction: GenericActionCtx<GenericDataModel>["runAction"];
 };
 
-export type OpaqueIds<T> =
-  T extends GenericId<infer _T>
-    ? string
-    : T extends (infer U)[]
-      ? OpaqueIds<U>[]
-      : T extends ArrayBuffer
-        ? ArrayBuffer
-        : T extends object
-          ? { [K in keyof T]: OpaqueIds<T[K]> }
-          : T;
+type CtxWith<T extends "runQuery" | "runMutation" | "runAction"> = Pick<
+  {
+    runQuery: <Query extends FunctionReference<"query", "internal">>(
+      query: Query,
+      args: FunctionArgs<Query>
+    ) => Promise<FunctionReturnType<Query>>;
+    runMutation: <Mutation extends FunctionReference<"mutation", "internal">>(
+      mutation: Mutation,
+      args: FunctionArgs<Mutation>
+    ) => Promise<FunctionReturnType<Mutation>>;
+    runAction: <Action extends FunctionReference<"action", "internal">>(
+      action: Action,
+      args: FunctionArgs<Action>
+    ) => Promise<FunctionReturnType<Action>>;
+  },
+  T
+>;
 
-export type UseApi<API> = Expand<{
-  [mod in keyof API]: API[mod] extends FunctionReference<
-    infer FType,
-    "public",
-    infer FArgs,
-    infer FReturnType,
-    infer FComponentPath
-  >
-    ? FunctionReference<
-        FType,
-        "internal",
-        OpaqueIds<FArgs>,
-        OpaqueIds<FReturnType>,
-        FComponentPath
-      >
-    : UseApi<API[mod]>;
-}>;
+type QueryCtx = CtxWith<"runQuery">;
+const queryCtx = {} as QueryCtx;

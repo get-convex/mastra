@@ -10,7 +10,7 @@ import type {
   ToolContent,
   UserContent,
 } from "ai";
-import { v } from "convex/values";
+import { Infer, v } from "convex/values";
 import { SerializeUrlsAndUint8Arrays, vContent } from "../ai/types";
 
 export const TABLE_WORKFLOW_SNAPSHOT = "mastra_workflow_snapshot";
@@ -83,11 +83,6 @@ export type SerializedContent = SerializeUrlsAndUint8Arrays<
   MessageType["content"]
 >;
 
-export type SerializedMessage = Omit<MessageType, "createdAt" | "content"> & {
-  createdAt: SerializedTimestamp;
-  content: SerializedContent;
-};
-
 export const vSerializedMessage = v.object({
   id: v.string(),
   threadId: v.string(),
@@ -105,6 +100,12 @@ export const vSerializedMessage = v.object({
   ),
   createdAt: v.number(),
 });
+
+export type SerializedMessage = Infer<typeof vSerializedMessage>;
+// Omit<MessageType, "createdAt" | "content"> & {
+//   createdAt: SerializedTimestamp;
+//   content: SerializedContent;
+// };
 
 export type SerializedThread = Omit<
   StorageThreadType,

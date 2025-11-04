@@ -3,7 +3,11 @@
 export * as libsql from "@libsql/client";
 export { InMemoryStorage } from "./in-memory.js";
 
-import type { MessageType, StorageThreadType } from "@mastra/core";
+import type {
+  MessageType,
+  StorageThreadType,
+  WorkflowRuns,
+} from "@mastra/core";
 import type {
   EvalRow,
   StorageColumn,
@@ -24,7 +28,6 @@ import {
   GenericMutationCtx,
   GenericQueryCtx,
 } from "convex/server";
-import type { Mounts } from "../component/_generated/api.js";
 import {
   mapMastraToSerialized,
   mapSerializedToMastra,
@@ -33,12 +36,12 @@ import {
   SerializedThread,
   SerializedTrace,
 } from "../mapping/index.js";
-import { UseApi } from "./types.js";
+import { ComponentApi } from "../component/_generated/component.js";
 
 export class ConvexStorage extends MastraStorage {
   ctx: Ctx<"action" | "mutation" | "query"> | undefined;
-  api: UseApi<Mounts>["storage"];
-  constructor(component: UseApi<Mounts>, options?: { name?: string }) {
+  api: ComponentApi["storage"];
+  constructor(component: ComponentApi, options?: { name?: string }) {
     super({ name: options?.name ?? "ConvexStorage" });
     this.api = component.storage;
     this.shouldCacheInit = true;
@@ -80,6 +83,18 @@ export class ConvexStorage extends MastraStorage {
         }
     }
     return this.ctx as Ctx<T>;
+  }
+
+  async getWorkflowRuns(args?: {
+    namespace?: string;
+    workflowName?: string;
+    fromDate?: Date;
+    toDate?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<WorkflowRuns> {
+    // TODO: implement
+    return { runs: [], total: 0 };
   }
 
   async createTable(args: {

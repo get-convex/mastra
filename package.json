@@ -15,103 +15,81 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "npm run build:esm && npm run build:cjs",
-    "build:esm": "tsc --project ./esm.json && echo '{\\n  \"type\": \"module\"\\n}' > dist/esm/package.json",
-    "build:cjs": "tsc --project ./commonjs.json && echo '{\\n  \"type\": \"commonjs\"\\n}' > dist/commonjs/package.json",
-    "dev": "cd example; npm run dev",
-    "typecheck": "tsc --noEmit",
-    "prepare": "npm run build",
-    "prepack": "node node10stubs.mjs",
-    "postpack": "node node10stubs.mjs --cleanup",
-    "alpha": "rm -rf dist && npm run build && npm run test && npm version prerelease --preid alpha && npm publish --tag alpha && git push --tags",
-    "release": "rm -rf dist && npm run build && npm run test && npm version patch && npm publish && git push --tags",
-    "test": "vitest run",
+    "dev": "run-p -r 'dev:*'",
+    "dev:backend": "convex dev --typecheck-components",
+    "dev:frontend": "cd example && vite --clearScreen false",
+    "dev:build": "npx chokidar 'tsconfig*.json' 'src/**/*.ts' -i '**/*.test.ts' -c 'npx convex codegen --component ./src/component && npm run build' --initial",
+    "predev": "npm run dev:backend -- --until-success",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "build": "tsc --project ./tsconfig.build.json",
+    "typecheck": "tsc --noEmit && tsc -p example && tsc -p example/convex",
+    "lint": "eslint src && eslint example",
+    "all": "run-p -r 'dev:*' 'test:watch'",
+    "test": "vitest run --typecheck",
+    "test:watch": "vitest --typecheck --clearScreen false",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
-    "test:coverage": "vitest run --coverage --coverage.reporter=text"
+    "test:coverage": "vitest run --coverage --coverage.reporter=text",
+    "attw": "attw $(npm pack -s) --exclude-entrypoints ./convex.config --profile esm-only",
+    "prepare": "npm run build",
+    "alpha": "npm run clean && npm ci && run-p test lint typecheck attw && npm version prerelease --preid alpha && npm publish --tag alpha && git push --tags",
+    "release": "npm run clean && npm ci && run-p test lint typecheck attw && npm version patch && npm publish && git push --tags",
+    "version": "pbcopy <<<$npm_package_version; vim CHANGELOG.md && prettier -w CHANGELOG.md && git add CHANGELOG.md"
   },
   "files": [
     "dist",
-    "src",
-    "react"
+    "src"
   ],
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "import": {
-        "@convex-dev/component-source": "./src/client/index.ts",
-        "types": "./dist/esm/client/index.d.ts",
-        "default": "./dist/esm/client/index.js"
-      },
-      "require": {
-        "@convex-dev/component-source": "./src/client/index.ts",
-        "types": "./dist/commonjs/client/index.d.ts",
-        "default": "./dist/commonjs/client/index.js"
-      }
-    },
-    "./client": {
-      "import": {
-        "@convex-dev/component-source": "./src/client/client.ts",
-        "types": "./dist/esm/client/client.d.ts",
-        "default": "./dist/esm/client/client.js"
-      },
-      "require": {
-        "@convex-dev/component-source": "./src/client/client.ts",
-        "types": "./dist/commonjs/client/client.d.ts",
-        "default": "./dist/commonjs/client/client.js"
-      }
-    },
-    "./mapping": {
-      "import": {
-        "@convex-dev/component-source": "./src/mapping/index.ts",
-        "types": "./dist/esm/mapping/index.d.ts",
-        "default": "./dist/esm/mapping/index.js"
-      },
-      "require": {
-        "@convex-dev/component-source": "./src/mapping/index.ts",
-        "types": "./dist/commonjs/mapping/index.d.ts",
-        "default": "./dist/commonjs/mapping/index.js"
-      }
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
     },
     "./react": {
-      "import": {
-        "@convex-dev/component-source": "./src/react/index.ts",
-        "types": "./dist/esm/react/index.d.ts",
-        "default": "./dist/esm/react/index.js"
-      },
-      "require": {
-        "@convex-dev/component-source": "./src/react/index.ts",
-        "types": "./dist/commonjs/react/index.d.ts",
-        "default": "./dist/commonjs/react/index.js"
-      }
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
+    },
+    "./test": "./src/test.ts",
+    "./_generated/component.js": {
+      "types": "./dist/component/_generated/component.d.ts"
     },
     "./convex.config": {
-      "import": {
-        "@convex-dev/component-source": "./src/component/convex.config.ts",
-        "types": "./dist/esm/component/convex.config.d.ts",
-        "default": "./dist/esm/component/convex.config.js"
-      }
+      "types": "./dist/component/convex.config.d.ts",
+      "default": "./dist/component/convex.config.js"
     }
   },
   "peerDependencies": {
     "@mastra/core": "^0.7.0 || ^0.8.0",
-    "ai": "^4.2.0",
-    "convex": ">=1.21.0 <1.25.0",
-    "convex-helpers": "^0.1.74"
+    "ai": "^4.2.0 || ^5.0.0",
+    "convex": "^1.24.8",
+    "convex-helpers": "^0.1.100"
   },
   "devDependencies": {
-    "@ai-sdk/openai": "^1.3.6",
-    "@eslint/js": "^9.9.1",
-    "@libsql/client": "^0.15.0",
-    "@types/node": "^18.17.0",
-    "convex-test": "^0.0.33",
-    "eslint": "^9.9.1",
-    "globals": "^15.9.0",
-    "prettier": "3.2.5",
-    "typescript": "^5.8.2",
-    "typescript-eslint": "^8.4.0",
-    "vitest": "^3.0.9"
+    "@ai-sdk/openai": "^1.3.24",
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.38.0",
+    "@libsql/client": "^0.15.15",
+    "@mastra/core": "^0.23.3",
+    "@mastra/memory": "^0.15.10",
+    "@types/node": "20.19.24",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.0",
+    "convex-test": "^0.0.38",
+    "eslint": "^9.38.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.4.0",
+    "mastra": "^0.17.7",
+    "prettier": "^3.6.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
+    "vite": "^7.1.12",
+    "vitest": "^3.2.4",
+    "zod": "^3.25.76"
   },
-  "main": "./dist/commonjs/client/index.js",
-  "types": "./dist/commonjs/client/index.d.ts",
-  "module": "./dist/esm/client/index.js"
+  "types": "./dist/client/index.d.ts",
+  "module": "./dist/client/index.js"
 }

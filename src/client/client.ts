@@ -1,4 +1,8 @@
-import type { MessageType, StorageThreadType } from "@mastra/core";
+import type {
+  MessageType,
+  StorageThreadType,
+  WorkflowRuns,
+} from "@mastra/core";
 import type {
   EvalRow,
   StorageColumn,
@@ -9,16 +13,8 @@ import { anyApi, FunctionReference } from "convex/server";
 import { mastraToConvexTableNames } from "../mapping/index.js";
 import { ConvexHttpClient } from "convex/browser";
 
-import type { Mounts } from "../component/_generated/api.js";
-import { UseApi } from "./types.js";
 import { MastraVector } from "@mastra/core";
 import { SupportedTableName } from "../component/vector/tables.js";
-import {
-  GenericDataModel,
-  GenericMutationCtx,
-  GenericQueryCtx,
-} from "convex/server";
-import { GenericActionCtx } from "convex/server";
 export { InMemoryVector } from "./in-memory.js";
 
 export type VectorApi = {
@@ -123,6 +119,19 @@ export class ConvexStorage extends MastraStorage {
     this.shouldCacheInit = true;
   }
 
+  async getWorkflowRuns(args?: {
+    namespace?: string;
+    workflowName?: string;
+    fromDate?: Date;
+    toDate?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<WorkflowRuns> {
+    return await this.client.query(this.api.storageQuery, {
+      op: "getWorkflowRuns",
+      args,
+    });
+  }
   async createTable(args: {
     tableName: TABLE_NAMES;
     schema: Record<string, StorageColumn>;
