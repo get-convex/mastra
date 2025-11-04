@@ -13,7 +13,6 @@ export const logLevel = v.union(
 );
 export type LogLevel = Infer<typeof logLevel>;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export type Logger = {
   debug: (...args: unknown[]) => void;
   info: (...args: unknown[]) => void;

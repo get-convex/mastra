@@ -35,7 +35,6 @@ export function validateTableSchema(
     if (!(name in fields)) {
       throw new Error(`Field ${name} not found in schema for ${tableName}`);
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let convexValue: Validator<any>["kind"];
     switch (field.type) {
       case "text":
@@ -62,7 +61,6 @@ export function validateTableSchema(
         `Unexpected field type ${field.type} for ${name} in ${tableName}`
       );
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const expected = fields[name as keyof typeof fields] as Validator<any, any>;
     if (expected.type !== convexValue) {
       throw new Error(
@@ -86,7 +84,6 @@ export const insert = mutation({
     const console = await makeConsole(ctx);
     console.debug(`Inserting ${args.tableName}`, args.document);
     // TODO: split out into inserts per usecase and enforce unique constraints
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await ctx.db.insert(args.tableName as any, args.document);
   },
   returns: v.null(),
@@ -102,7 +99,6 @@ export const batchInsert = mutation({
     console.debug(`Batch inserting ${args.tableName}`, args.records);
     await Promise.all(
       args.records.map(async (record) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await ctx.db.insert(args.tableName as any, record);
       })
     );
@@ -181,7 +177,6 @@ export const clearPage = internalMutation({
   args: { tableName: v.string(), cursor: v.union(v.string(), v.null()) },
   handler: async (ctx, args): Promise<string | null> => {
     const console = await makeConsole(ctx);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const page = await ctx.db.query(args.tableName as any).paginate({
       numItems: 1000,
       cursor: args.cursor ?? null,

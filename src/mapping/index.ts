@@ -57,7 +57,7 @@ export type MastraRowTypeMap = {
   [TABLE_EVALS]: EvalRow;
   [TABLE_MESSAGES]: MessageType;
   [TABLE_THREADS]: StorageThreadType;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   [TABLE_TRACES]: any; // Replace with proper type when available
 };
 
@@ -126,7 +126,6 @@ export const vSerializedThread = v.object({
 
 // Inferring from the table schema created in
 // @mastra/core:src/storage/base.ts
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export type SerializedTrace = {
   id: string;
   parentSpanId?: string | null;
@@ -143,7 +142,6 @@ export type SerializedTrace = {
   other?: any;
   createdAt: SerializedTimestamp;
 };
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Type that maps Convex table names to their document types
 export type SerializedTypeMap = {

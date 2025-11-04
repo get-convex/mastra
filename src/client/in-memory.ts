@@ -18,7 +18,6 @@ import {
   TABLE_WORKFLOW_SNAPSHOT,
 } from "@mastra/core/storage";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
 
 /**
@@ -65,7 +64,6 @@ export class InMemoryStorage extends MastraStorage {
   }
 
   // We make this a non-async function so all inserts can happen transactionally
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _insert(tableName: TABLE_NAMES, record: Record<string, any>) {
     if (this.primaryKeys[tableName]) {
       const primaryKey = record[this.primaryKeys[tableName]!];
@@ -99,7 +97,6 @@ export class InMemoryStorage extends MastraStorage {
     record,
   }: {
     tableName: TABLE_NAMES;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     record: Record<string, any>;
   }) {
     this._insert(tableName, record);
@@ -110,7 +107,6 @@ export class InMemoryStorage extends MastraStorage {
     records,
   }: {
     tableName: TABLE_NAMES;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     records: Record<string, any>[];
   }) {
     records.forEach((record) => this._insert(tableName, record));
@@ -263,7 +259,6 @@ export class InMemoryStorage extends MastraStorage {
     page: number;
     perPage: number;
     attributes?: Record<string, string>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }): Promise<any[]> {
     const { name, scope, page, perPage, attributes } = args;
     const limit = perPage;

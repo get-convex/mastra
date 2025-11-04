@@ -167,7 +167,7 @@ export class ConvexStorage extends MastraStorage {
 
   async batchInsert(args: {
     tableName: TABLE_NAMES;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     records: Record<string, any>[];
   }): Promise<void> {
     await this.client.mutation(this.api.storageMutation, {
@@ -278,7 +278,6 @@ export class ConvexStorage extends MastraStorage {
     page: number;
     perPage: number;
     attributes?: Record<string, string>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }): Promise<any[]> {
     return await this.client.action(this.api.storageAction, {
       op: "getTraces",

@@ -255,7 +255,6 @@ export const describeIndex = query({
     }
     return {
       dimension: dimensions,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       count: await (ctx.db.query(index.tableName) as any).count(),
       metric: "cosine" as const,
     };

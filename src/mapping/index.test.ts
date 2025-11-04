@@ -238,13 +238,11 @@ test("content serialization with ArrayBuffer", () => {
 });
 
 test("invalid table name throws error", () => {
-  expect(() =>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mapMastraToSerialized("invalid_table" as any, {})
-  ).toThrow("Unsupported table name: invalid_table");
+  expect(() => mapMastraToSerialized("invalid_table" as any, {})).toThrow(
+    "Unsupported table name: invalid_table"
+  );
 
-  expect(() =>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mapSerializedToMastra("invalid_table" as any, {})
-  ).toThrow("Unsupported table name: invalid_table");
+  expect(() => mapSerializedToMastra("invalid_table" as any, {})).toThrow(
+    "Unsupported table name: invalid_table"
+  );
 });

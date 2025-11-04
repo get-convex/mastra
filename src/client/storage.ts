@@ -119,7 +119,6 @@ export class ConvexStorage extends MastraStorage {
 
   async insert(args: {
     tableName: TABLE_NAMES;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     record: Record<string, any>;
   }): Promise<void> {
     const convexRecord = mapMastraToSerialized(args.tableName, args.record);
@@ -134,7 +133,6 @@ export class ConvexStorage extends MastraStorage {
 
   async batchInsert(args: {
     tableName: TABLE_NAMES;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     records: Record<string, any>[];
   }): Promise<void> {
     const ctx = this.getApi("mutation");
@@ -303,7 +301,6 @@ export class ConvexStorage extends MastraStorage {
     page: number;
     perPage: number;
     attributes?: Record<string, string>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }): Promise<any[]> {
     const { name, scope, page, perPage, attributes } = options ?? {};
     const traces: SerializedTrace[] = [];
