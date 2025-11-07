@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { Doc } from "../_generated/dataModel.js";
+import type { Doc } from "../_generated/dataModel.js";
 import { mutation, query } from "../_generated/server.js";
 import {
   type SerializedMessage,
@@ -41,7 +41,7 @@ export const getThreadsByResourceId = query({
   },
   handler: async (
     ctx,
-    args
+    args,
   ): Promise<{
     threads: SerializedThread[];
     continueCursor: string;
@@ -170,13 +170,13 @@ const vSelectBy = v.object({
         id: v.string(),
         withPreviousMessages: v.optional(v.number()),
         withNextMessages: v.optional(v.number()),
-      })
-    )
+      }),
+    ),
   ),
 });
 
 function messageToSerializedMastra(
-  message: Doc<"messages">
+  message: Doc<"messages">,
 ): SerializedMessage {
   const { threadOrder: _, _id, _creationTime, ...serialized } = message;
   return {
@@ -233,7 +233,7 @@ export const getMessagesPage = query({
             handled[i] = true;
           }
         }
-      }) ?? []
+      }) ?? [],
     );
     console.debug(`Need to fetch ${toFetch.length} messages`);
     // sort and find unique numbers in toFetch
@@ -260,10 +260,10 @@ export const getMessagesPage = query({
               q
                 .eq("threadId", args.threadId)
                 .gte("threadOrder", range.start)
-                .lte("threadOrder", range.end)
+                .lte("threadOrder", range.end),
             )
             .collect();
-        })
+        }),
       )
     ).flat();
     console.debug(`Fetched ${fetched.length} messages`);

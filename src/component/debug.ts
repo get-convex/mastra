@@ -1,15 +1,18 @@
-import { v, VString } from "convex/values";
+import { v, type VString } from "convex/values";
 import {
-  ActionCtx,
+  type ActionCtx,
   internalAction,
   internalMutation,
   internalQuery,
-} from "./_generated/server";
+} from "./_generated/server.js";
 
 import { logLevel } from "./logger.js";
-import { internal } from "./_generated/api";
-import { TableNames } from "./_generated/dataModel";
-import { mapSerializedToMastra, TABLE_WORKFLOW_SNAPSHOT } from "../mapping";
+import { internal } from "./_generated/api.js";
+import type { TableNames } from "./_generated/dataModel.js";
+import {
+  mapSerializedToMastra,
+  TABLE_WORKFLOW_SNAPSHOT,
+} from "../mapping/index.js";
 
 export const debugOverrideLogLevel = internalMutation({
   args: {

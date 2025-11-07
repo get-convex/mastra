@@ -1,7 +1,7 @@
-import { Infer } from "convex/values";
+import type { Infer } from "convex/values";
 import { test } from "vitest";
 import {
-  SerializeUrlsAndUint8Arrays,
+  type SerializeUrlsAndUint8Arrays,
   vAssistantContent,
   vFilePart,
   vImagePart,
@@ -10,9 +10,9 @@ import {
   vTextPart,
   vToolCallPart,
   vToolContent,
-} from "./types";
-import { vUserContent } from "./types";
-import {
+} from "./types.js";
+import { vUserContent } from "./types.js";
+import type {
   AssistantContent,
   FilePart,
   ImagePart,

@@ -1,7 +1,7 @@
-import { v, Validator } from "convex/values";
+import { v, type Validator } from "convex/values";
 import tables from "./tables.js";
 import { internal } from "../_generated/api.js";
-import { TableNames } from "./tables.js";
+import type { TableNames } from "./tables.js";
 import {
   action,
   internalMutation,
@@ -24,7 +24,7 @@ interface StorageColumn {
 
 export function validateTableSchema(
   tableName: TableNames,
-  tableSchema: Record<string, StorageColumn>
+  tableSchema: Record<string, StorageColumn>,
 ) {
   if (!tables[tableName]) {
     throw new Error(`Table ${tableName} not found in schema`);
@@ -58,18 +58,18 @@ export function validateTableSchema(
     }
     if (!convexValue) {
       throw new Error(
-        `Unexpected field type ${field.type} for ${name} in ${tableName}`
+        `Unexpected field type ${field.type} for ${name} in ${tableName}`,
       );
     }
     const expected = fields[name as keyof typeof fields] as Validator<any, any>;
     if (expected.type !== convexValue) {
       throw new Error(
-        `Field ${name} in table ${tableName} was expected to be a ${convexValue} but got ${expected.type}`
+        `Field ${name} in table ${tableName} was expected to be a ${convexValue} but got ${expected.type}`,
       );
     }
     if (expected.isOptional === "required" && field.nullable) {
       throw new Error(
-        `Field ${name} in table ${tableName} was expected to be required but the schema specified nullable`
+        `Field ${name} in table ${tableName} was expected to be required but the schema specified nullable`,
       );
     }
   }
@@ -100,7 +100,7 @@ export const batchInsert = mutation({
     await Promise.all(
       args.records.map(async (record) => {
         await ctx.db.insert(args.tableName as any, record);
-      })
+      }),
     );
   },
   returns: v.null(),
@@ -114,12 +114,12 @@ export const loadSnapshot = query({
   handler: async (ctx, args) => {
     const console = await makeConsole(ctx);
     console.debug(
-      `Loading snapshot for ${args.runId} and ${args.workflowName}`
+      `Loading snapshot for ${args.runId} and ${args.workflowName}`,
     );
     const snapshot = await ctx.db
       .query("snapshots")
       .withIndex("runId", (q) =>
-        q.eq("runId", args.runId).eq("workflowName", args.workflowName)
+        q.eq("runId", args.runId).eq("workflowName", args.workflowName),
       )
       .order("desc")
       .first();
@@ -142,7 +142,7 @@ export const load = query({
     console.debug(`Loading ${args.tableName}`, args.keys);
     if (args)
       throw new Error(
-        `Not implemented: load for ${args.tableName}: ${JSON.stringify(args.keys)}`
+        `Not implemented: load for ${args.tableName}: ${JSON.stringify(args.keys)}`,
       );
   },
   returns: v.union(v.any(), v.null()),
@@ -162,7 +162,7 @@ export const clearTable = action({
         {
           tableName: args.tableName,
           cursor,
-        }
+        },
       );
       if (!cursor) {
         break;
@@ -184,7 +184,7 @@ export const clearPage = internalMutation({
     await Promise.all(
       page.page.map(async (item) => {
         await ctx.db.delete(item._id);
-      })
+      }),
     );
     console.debug(`Deleted ${page.page.length} items from ${args.tableName}`);
     if (!page.isDone) {
@@ -235,7 +235,7 @@ export const getTracesPage = query({
   handler: async (ctx, args) => {
     const console = await makeConsole(ctx);
     console.debug(
-      `Getting traces page with name ${args.name}, scope ${args.scope}, cursor ${args.cursor}, numItems ${args.numItems}, attributes ${args.attributes}`
+      `Getting traces page with name ${args.name}, scope ${args.scope}, cursor ${args.cursor}, numItems ${args.numItems}, attributes ${args.attributes}`,
     );
     const { scope, name, cursor, numItems, attributes } = args;
     const overfetch = (scope ? 1 : 8) * (name ? 1 : 8);
@@ -245,7 +245,7 @@ export const getTracesPage = query({
         ? traces.withIndex("scope", (q) => q.eq("scope", scope))
         : name
           ? traces.withIndex("name", (q) =>
-              q.gte("name", name).lt("name", name + "~")
+              q.gte("name", name).lt("name", name + "~"),
             )
           : traces
     ).paginate({
@@ -263,8 +263,8 @@ export const getTracesPage = query({
             (!scope || trace.scope === scope) &&
             (!attributes ||
               Object.entries(attributes).every(
-                ([key, value]) => trace[key as keyof typeof trace] === value
-              ))
+                ([key, value]) => trace[key as keyof typeof trace] === value,
+              )),
         )
         .map((t) => {
           const { _id, _creationTime, ...serialized } = t;

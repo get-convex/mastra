@@ -8,13 +8,13 @@ import type {
   StorageColumn,
   StorageGetMessagesArg,
 } from "@mastra/core/storage";
-import { MastraStorage, TABLE_NAMES } from "@mastra/core/storage";
-import { anyApi, FunctionReference } from "convex/server";
+import { MastraStorage, type TABLE_NAMES } from "@mastra/core/storage";
+import { anyApi, type FunctionReference } from "convex/server";
 import { mastraToConvexTableNames } from "../mapping/index.js";
 import { ConvexHttpClient } from "convex/browser";
 
 import { MastraVector } from "@mastra/core";
-import { SupportedTableName } from "../component/vector/tables.js";
+import type { SupportedTableName } from "../component/vector/tables.js";
 export { InMemoryVector } from "./in-memory.js";
 
 export type VectorApi = {
@@ -27,7 +27,7 @@ export class ConvexVector extends MastraVector {
 
   constructor(
     public client: ConvexHttpClient,
-    public options?: { name?: string; api?: VectorApi }
+    public options?: { name?: string; api?: VectorApi },
   ) {
     super();
     this.api = options?.api ?? (anyApi.mastra.api as unknown as VectorApi);
@@ -51,7 +51,7 @@ export class ConvexVector extends MastraVector {
   async upsert(...args: Parameters<MastraVector["upsert"]>): Promise<string[]> {
     const { indexName, vectors, metadata, ids } = this.normalizeArgs(
       "upsert",
-      args
+      args,
     );
     return await this.client.action(this.api.vectorAction, {
       op: "upsert",
@@ -111,7 +111,7 @@ export class ConvexStorage extends MastraStorage {
   api: StorageApi;
   constructor(
     client: ConvexHttpClient,
-    options?: { name?: string; api?: StorageApi }
+    options?: { name?: string; api?: StorageApi },
   ) {
     super({ name: options?.name ?? "ConvexStorage" });
     this.client = client;
@@ -264,7 +264,7 @@ export class ConvexStorage extends MastraStorage {
 
   async getEvalsByAgentName(
     agentName: string,
-    type?: "test" | "live"
+    type?: "test" | "live",
   ): Promise<EvalRow[]> {
     return await this.client.query(this.api.storageQuery, {
       op: "getEvalsByAgentName",

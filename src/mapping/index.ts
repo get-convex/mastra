@@ -2,7 +2,7 @@ import type {
   EvalRow,
   MessageType,
   StorageThreadType,
-  WorkflowRow,
+  StorageWorkflowRun,
 } from "@mastra/core";
 import type {
   AssistantContent,
@@ -10,8 +10,8 @@ import type {
   ToolContent,
   UserContent,
 } from "ai";
-import { Infer, v } from "convex/values";
-import { SerializeUrlsAndUint8Arrays, vContent } from "../ai/types";
+import { type Infer, v } from "convex/values";
+import { type SerializeUrlsAndUint8Arrays, vContent } from "../ai/types.js";
 
 export const TABLE_WORKFLOW_SNAPSHOT = "mastra_workflow_snapshot";
 export const TABLE_EVALS = "mastra_evals";
@@ -53,7 +53,7 @@ export type MastraTableName<T extends keyof ConvexToMastraTableMap> =
 
 // Type that maps Mastra table names to their row types
 export type MastraRowTypeMap = {
-  [TABLE_WORKFLOW_SNAPSHOT]: WorkflowRow;
+  [TABLE_WORKFLOW_SNAPSHOT]: StorageWorkflowRun;
   [TABLE_EVALS]: EvalRow;
   [TABLE_MESSAGES]: MessageType;
   [TABLE_THREADS]: StorageThreadType;
@@ -65,8 +65,8 @@ export type SerializedTimestamp = number;
 const vSerializedTimestamp = v.number();
 
 export type SerializedSnapshot = Omit<
-  WorkflowRow,
-  "created_at" | "updated_at" | "snapshot" | "workflow_name" | "run_id"
+  StorageWorkflowRun,
+  "createdAt" | "updatedAt" | "snapshot" | "workflow_name" | "run_id"
 > & {
   createdAt: SerializedTimestamp;
   updatedAt: SerializedTimestamp;
@@ -92,12 +92,12 @@ export const vSerializedMessage = v.object({
     v.literal("system"),
     v.literal("user"),
     v.literal("assistant"),
-    v.literal("tool")
+    v.literal("tool"),
   ),
   type: v.union(
     v.literal("text"),
     v.literal("tool-call"),
-    v.literal("tool-result")
+    v.literal("tool-result"),
   ),
   createdAt: v.number(),
 });
@@ -173,7 +173,7 @@ function serializeDateOrNow(date: string | Date | number): number {
  */
 export function mapMastraToSerialized<T extends TABLE_NAMES>(
   tableName: T,
-  mastraRow: MastraRowTypeMap[T]
+  mastraRow: MastraRowTypeMap[T],
 ): SerializedTypeMap[T] {
   switch (tableName) {
     case TABLE_WORKFLOW_SNAPSHOT: {
@@ -182,8 +182,8 @@ export function mapMastraToSerialized<T extends TABLE_NAMES>(
         workflowName: row.workflow_name,
         runId: row.run_id,
         snapshot: JSON.stringify(row.snapshot),
-        updatedAt: serializeDateOrNow(row.updated_at),
-        createdAt: serializeDateOrNow(row.created_at),
+        updatedAt: serializeDateOrNow(row.updatedAt),
+        createdAt: serializeDateOrNow(row.createdAt),
       };
       return serialized as SerializedTypeMap[T];
     }
@@ -254,7 +254,7 @@ export function mapMastraToSerialized<T extends TABLE_NAMES>(
 }
 
 export function serializeContent(
-  content: UserContent | AssistantContent | ToolContent
+  content: UserContent | AssistantContent | ToolContent,
 ): SerializedContent {
   if (typeof content === "string") {
     return content;
@@ -273,7 +273,7 @@ export function serializeContent(
 }
 
 export function deserializeContent(
-  content: SerializedContent
+  content: SerializedContent,
 ): UserContent | AssistantContent | ToolContent {
   if (typeof content === "string") {
     return content;
@@ -290,7 +290,7 @@ export function deserializeContent(
   }) as UserContent | AssistantContent | ToolContent;
 }
 function serializeDataOrUrl(
-  dataOrUrl: DataContent | URL
+  dataOrUrl: DataContent | URL,
 ): ArrayBuffer | string {
   if (typeof dataOrUrl === "string") {
     return dataOrUrl;
@@ -303,7 +303,7 @@ function serializeDataOrUrl(
   }
   return dataOrUrl.buffer.slice(
     dataOrUrl.byteOffset,
-    dataOrUrl.byteOffset + dataOrUrl.byteLength
+    dataOrUrl.byteOffset + dataOrUrl.byteLength,
   ) as ArrayBuffer;
 }
 
@@ -328,13 +328,13 @@ function deserializeUrl(urlOrString: string | ArrayBuffer): URL | DataContent {
  */
 export function mapSerializedToMastra<T extends TABLE_NAMES>(
   tableName: T,
-  row: SerializedTypeMap[T]
+  row: SerializedTypeMap[T],
 ): MastraRowTypeMap[T] {
   switch (tableName) {
     case TABLE_WORKFLOW_SNAPSHOT: {
       const serialized =
         row as SerializedTypeMap[typeof TABLE_WORKFLOW_SNAPSHOT];
-      const workflow: WorkflowRow = {
+      const workflow: StorageWorkflowRun = {
         workflow_name: serialized.workflowName,
         run_id: serialized.runId,
         snapshot: JSON.parse(serialized.snapshot),

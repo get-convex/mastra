@@ -1,5 +1,5 @@
 import type { DataContent, ImagePart } from "ai";
-import { Infer, v } from "convex/values";
+import { type Infer, v } from "convex/values";
 
 // const deprecated = v.optional(v.any()) as unknown as VNull<unknown, "optional">;
 
@@ -68,7 +68,7 @@ export const vFilePart = v.object({
 
 export const vUserContent = v.union(
   v.string(),
-  v.array(v.union(vTextPart, vImagePart, vFilePart))
+  v.array(v.union(vTextPart, vImagePart, vFilePart)),
 );
 
 export const vReasoningPart = v.object({
@@ -102,9 +102,9 @@ export const vAssistantContent = v.union(
       vFilePart,
       vReasoningPart,
       vRedactedReasoningPart,
-      vToolCallPart
-    )
-  )
+      vToolCallPart,
+    ),
+  ),
 );
 
 const vToolResultContent = v.array(
@@ -117,8 +117,8 @@ const vToolResultContent = v.array(
       type: v.literal("image"),
       data: v.string(),
       mimeType: v.optional(v.string()),
-    })
-  )
+    }),
+  ),
 );
 
 const vToolResultPart = v.object({

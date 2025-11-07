@@ -1,19 +1,17 @@
 /* Type utils follow */
 
-import {
-  Expand,
+import type {
   FunctionArgs,
   FunctionReference,
   FunctionReturnType,
   GenericActionCtx,
 } from "convex/server";
 
-import { GenericMutationCtx } from "convex/server";
+import type { GenericMutationCtx } from "convex/server";
 
-import { GenericQueryCtx } from "convex/server";
+import type { GenericQueryCtx } from "convex/server";
 
-import { GenericDataModel } from "convex/server";
-import { GenericId } from "convex/values";
+import type { GenericDataModel } from "convex/server";
 
 export type RunQueryCtx = {
   runQuery: GenericQueryCtx<GenericDataModel>["runQuery"];
@@ -32,15 +30,15 @@ type CtxWith<T extends "runQuery" | "runMutation" | "runAction"> = Pick<
   {
     runQuery: <Query extends FunctionReference<"query", "internal">>(
       query: Query,
-      args: FunctionArgs<Query>
+      args: FunctionArgs<Query>,
     ) => Promise<FunctionReturnType<Query>>;
     runMutation: <Mutation extends FunctionReference<"mutation", "internal">>(
       mutation: Mutation,
-      args: FunctionArgs<Mutation>
+      args: FunctionArgs<Mutation>,
     ) => Promise<FunctionReturnType<Mutation>>;
     runAction: <Action extends FunctionReference<"action", "internal">>(
       action: Action,
-      args: FunctionArgs<Action>
+      args: FunctionArgs<Action>,
     ) => Promise<FunctionReturnType<Action>>;
   },
   T

@@ -17,12 +17,12 @@ import {
   MastraStorage,
   TABLE_EVALS,
   TABLE_MESSAGES,
-  TABLE_NAMES,
+  type TABLE_NAMES,
   TABLE_THREADS,
   TABLE_TRACES,
   TABLE_WORKFLOW_SNAPSHOT,
 } from "@mastra/core/storage";
-import {
+import type {
   GenericActionCtx,
   GenericDataModel,
   GenericMutationCtx,
@@ -32,11 +32,11 @@ import {
   mapMastraToSerialized,
   mapSerializedToMastra,
   mastraToConvexTableNames,
-  SerializedMessage,
-  SerializedThread,
-  SerializedTrace,
+  type SerializedMessage,
+  type SerializedThread,
+  type SerializedTrace,
 } from "../mapping/index.js";
-import { ComponentApi } from "../component/_generated/component.js";
+import type { ComponentApi } from "../component/_generated/component.js";
 
 export class ConvexStorage extends MastraStorage {
   ctx: Ctx<"action" | "mutation" | "query"> | undefined;
@@ -63,7 +63,7 @@ export class ConvexStorage extends MastraStorage {
     if (!this.ctx) {
       throw new Error(
         "Context not set: ensure you're calling storage.setCtx" +
-          " before using the storage."
+          " before using the storage.",
       );
     }
     switch (kind) {
@@ -140,7 +140,7 @@ export class ConvexStorage extends MastraStorage {
     await ctx.runMutation(this.api.storage.batchInsert, {
       tableName,
       records: args.records.map((record) =>
-        mapMastraToSerialized(args.tableName, record)
+        mapMastraToSerialized(args.tableName, record),
       ),
     });
     return;
@@ -211,7 +211,7 @@ export class ConvexStorage extends MastraStorage {
       cursor = page.continueCursor;
     }
     return threads.map((thread) =>
-      mapSerializedToMastra(TABLE_THREADS, thread)
+      mapSerializedToMastra(TABLE_THREADS, thread),
     );
   }
 
@@ -262,10 +262,10 @@ export class ConvexStorage extends MastraStorage {
         threadId,
         selectBy,
         // memoryConfig: threadConfig,
-      }
+      },
     );
     return messages.map((message) =>
-      mapSerializedToMastra(TABLE_MESSAGES, message)
+      mapSerializedToMastra(TABLE_MESSAGES, message),
     ) as T[];
   }
 
@@ -277,7 +277,7 @@ export class ConvexStorage extends MastraStorage {
     const ctx = this.getApi("mutation");
     await ctx.runMutation(this.api.messages.saveMessages, {
       messages: messages.map((message) =>
-        mapMastraToSerialized(TABLE_MESSAGES, message)
+        mapMastraToSerialized(TABLE_MESSAGES, message),
       ),
     });
     return messages;
@@ -285,7 +285,7 @@ export class ConvexStorage extends MastraStorage {
 
   async getEvalsByAgentName(
     agentName: string,
-    type?: "test" | "live"
+    type?: "test" | "live",
   ): Promise<EvalRow[]> {
     const ctx = this.getApi("query");
     const evals = await ctx.runQuery(this.api.storage.getEvalsByAgentName, {

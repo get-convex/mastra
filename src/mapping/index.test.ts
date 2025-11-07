@@ -3,10 +3,10 @@ import type {
   TABLE_NAMES as ORIGINAL_TABLE_NAMES,
 } from "@mastra/core/storage";
 import { expect, test } from "vitest";
-import { Content } from "../ai/types";
+import type { Content } from "../ai/types.js";
 import {
-  TABLE_NAMES as NEW_TABLE_NAMES,
-  SerializedContent,
+  type TABLE_NAMES as NEW_TABLE_NAMES,
+  type SerializedContent,
   TABLE_WORKFLOW_SNAPSHOT,
   TABLE_EVALS,
   TABLE_MESSAGES,
@@ -63,7 +63,7 @@ test("workflow snapshot mapping", () => {
 
   const roundTripped = mapSerializedToMastra(
     TABLE_WORKFLOW_SNAPSHOT,
-    serialized
+    serialized,
   );
   expect(roundTripped.workflow_name).toBe(mastraRow.workflow_name);
   expect(roundTripped.run_id).toBe(mastraRow.run_id);
@@ -239,10 +239,10 @@ test("content serialization with ArrayBuffer", () => {
 
 test("invalid table name throws error", () => {
   expect(() => mapMastraToSerialized("invalid_table" as any, {})).toThrow(
-    "Unsupported table name: invalid_table"
+    "Unsupported table name: invalid_table",
   );
 
   expect(() => mapSerializedToMastra("invalid_table" as any, {})).toThrow(
-    "Unsupported table name: invalid_table"
+    "Unsupported table name: invalid_table",
   );
 });

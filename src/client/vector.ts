@@ -1,12 +1,12 @@
 import { MastraVector } from "@mastra/core";
-import { SupportedTableName } from "../component/vector/tables.js";
-import {
+import type { SupportedTableName } from "../component/vector/tables.js";
+import type {
   GenericDataModel,
   GenericMutationCtx,
   GenericQueryCtx,
 } from "convex/server";
-import { GenericActionCtx } from "convex/server";
-import { ComponentApi } from "../component/_generated/component.js";
+import type { GenericActionCtx } from "convex/server";
+import type { ComponentApi } from "../component/_generated/component.js";
 export { InMemoryVector } from "./in-memory.js";
 
 export class ConvexVector extends MastraVector {
@@ -15,7 +15,7 @@ export class ConvexVector extends MastraVector {
 
   constructor(
     component: ComponentApi,
-    public options?: { name?: string }
+    public options?: { name?: string },
   ) {
     super();
     this.api = component.vector;
@@ -37,7 +37,7 @@ export class ConvexVector extends MastraVector {
     if (!this.ctx) {
       throw new Error(
         "Context not set: ensure you're calling storage.setCtx" +
-          " before using the storage."
+          " before using the storage.",
       );
     }
     switch (kind) {
@@ -75,7 +75,7 @@ export class ConvexVector extends MastraVector {
   async upsert(...args: Parameters<MastraVector["upsert"]>): Promise<string[]> {
     const { indexName, vectors, metadata, ids } = this.normalizeArgs(
       "upsert",
-      args
+      args,
     );
     const ctx = this.getApi("mutation");
     return await ctx.runMutation(this.api.vector.upsert, {
