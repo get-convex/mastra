@@ -10,18 +10,18 @@ import {
   mutation,
   internalQuery,
   internalMutation,
-  QueryCtx,
-} from "../_generated/server";
+  type QueryCtx,
+} from "../_generated/server.js";
 import {
   SUPPORTED_DIMENSIONS,
-  SupportedDimension,
+  type SupportedDimension,
   vSupportedDimension,
   vSupportedId,
   vSupportedTableName,
-} from "./tables";
-import { internal } from "../_generated/api";
+} from "./tables.js";
+import { internal } from "../_generated/api.js";
 import { paginator } from "convex-helpers/server/pagination";
-import schema from "../schema";
+import schema from "../schema.js";
 
 export const createIndex = mutation({
   args: { indexName: v.string(), dimensions: vSupportedDimension },
@@ -76,13 +76,13 @@ export const upsert = mutation({
   returns: v.array(v.string()),
   handler: async (
     ctx,
-    { indexName, vectors, metadata, ids }
+    { indexName, vectors, metadata, ids },
   ): Promise<string[]> => {
     const index = await ctx.runQuery(
       internal.vector.vector.getIndexMetadataQuery,
       {
         indexName,
-      }
+      },
     );
     if (!index) {
       throw new Error("Index not found");
@@ -130,7 +130,7 @@ export const upsert = mutation({
           });
         }
         return id ?? newId;
-      })
+      }),
     );
   },
 });
@@ -152,13 +152,13 @@ export const search = action({
   },
   handler: async (
     ctx,
-    { indexName, queryVector, topK, filter, includeVector }
+    { indexName, queryVector, topK, filter, includeVector },
   ): Promise<SearchResult[]> => {
     const index = await ctx.runQuery(
       internal.vector.vector.getIndexMetadataQuery,
       {
         indexName,
-      }
+      },
     );
     if (!index) {
       throw new Error("Index not found");
@@ -226,7 +226,7 @@ export const lookupResults = internalQuery({
               vector: args.includeVector ? r.vector : undefined,
             },
           ]
-        : []
+        : [],
     );
   },
   returns: v.array(vSearchResult),
@@ -236,7 +236,7 @@ export const listIndexes = query({
   args: {},
   handler: async (ctx): Promise<string[]> => {
     return (await ctx.db.query("indexTableMap").collect()).map(
-      (i) => i.indexName
+      (i) => i.indexName,
     );
   },
   returns: v.array(v.string()),
@@ -273,7 +273,7 @@ export const deleteIndex = action({
       internal.vector.vector.getIndexMetadataQuery,
       {
         indexName,
-      }
+      },
     );
     if (!index) {
       console.warn(`Index ${indexName} not found, not deleting...`);
@@ -286,7 +286,7 @@ export const deleteIndex = action({
         {
           indexName: index.tableName,
           cursor,
-        }
+        },
       );
       if (results.isDone) break;
       cursor = results.continueCursor;

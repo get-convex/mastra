@@ -1,6 +1,10 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-import { vAssistantContent, vToolContent, vUserContent } from "../../ai/types";
+import {
+  vAssistantContent,
+  vToolContent,
+  vUserContent,
+} from "../../ai/types.js";
 
 const storageSchema = {
   // messages.ts
@@ -14,12 +18,12 @@ const storageSchema = {
       v.literal("system"),
       v.literal("user"),
       v.literal("assistant"),
-      v.literal("tool")
+      v.literal("tool"),
     ),
     type: v.union(
       v.literal("text"),
       v.literal("tool-call"),
-      v.literal("tool-result")
+      v.literal("tool-result"),
     ),
     createdAt: v.number(),
   })
