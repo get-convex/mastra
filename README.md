@@ -4,12 +4,14 @@
 
 <!-- START: Include on https://convex.dev/components -->
 
-Use [Mastra](https://mastra.ai) to build workflows and define agents,
-then use this component to run and save them on [Convex](https://convex.dev/).
+Use [Mastra](https://mastra.ai) to build workflows and define agents, then use
+this component to run and save them on [Convex](https://convex.dev/).
 
-1. Run workflows asynchronously. Fire and forget from a serverless function (mutation or action).
-1. Track the status of the workflow. Reactive queries and run-to-completion utilities.
-   Or just write to the database from your steps and use normal Convex reactivity.
+1. Run workflows asynchronously. Fire and forget from a serverless function
+   (mutation or action).
+1. Track the status of the workflow. Reactive queries and run-to-completion
+   utilities. Or just write to the database from your steps and use normal
+   Convex reactivity.
 1. Resume a workflow from where it left off, after suspending it for user input.
 1. Full support for Mastra's step forking, joining, triggering, and more.
 
@@ -40,27 +42,31 @@ export const myAction = action({
 
 ### Use cases
 
-- Agentic workflows, such as taking user input, calling multiple LLMs, calling third parties, etc.
+- Agentic workflows, such as taking user input, calling multiple LLMs, calling
+  third parties, etc.
 - ... Everything else you want to do with Mastra.
 
-Found a bug? Feature request? [File it here](https://github.com/get-convex/mastra/issues).
+Found a bug? Feature request?
+[File it here](https://github.com/get-convex/mastra/issues).
 
 ### Future work
 
-- Provide Storage and Vector integrations for using Convex **from** Mastra servers.
+- Provide Storage and Vector integrations for using Convex **from** Mastra
+  servers.
   - Enables running from both `mastra dev` and `convex dev` for fast iterations.
   - Enables using Convex for Agent Memory.
 - Provide helpers to export functions so browsers can call them safely.
-- Add a custom mutation step, for a transactional step that will always terminate
-  without needing a retry configuration (built-in for Convex).
+- Add a custom mutation step, for a transactional step that will always
+  terminate without needing a retry configuration (built-in for Convex).
 
 ## Pre-requisite: Convex
 
-You'll need an existing Convex project to use the component.
-Convex is a hosted backend platform, including a database, serverless functions,
-and a ton more you can learn about [here](https://docs.convex.dev/get-started).
+You'll need an existing Convex project to use the component. Convex is a hosted
+backend platform, including a database, serverless functions, and a ton more you
+can learn about [here](https://docs.convex.dev/get-started).
 
-Run `npm create convex` or follow any of the [quickstarts](https://docs.convex.dev/home) to set one up.
+Run `npm create convex` or follow any of the
+[quickstarts](https://docs.convex.dev/home) to set one up.
 
 ## Installation
 
@@ -84,12 +90,13 @@ echo '{"node":{"externalPackages":["@libsql/client"]}}' > convex.json
 printf '"use node";\nexport * as _ from "@libsql/client";' > convex/_workaround.ts
 ```
 
-Create a `convex.config.ts` file in your app's `convex/` folder and install the component by calling `use`:
+Create a `convex.config.ts` file in your app's `convex/` folder and install the
+component by calling `use`:
 
 ```ts
 // convex/convex.config.ts
 import { defineApp } from "convex/server";
-import mastra from "@convex-dev/mastra/convex.config";
+import mastra from "@convex-dev/mastra/convex.config.js";
 
 const app = defineApp();
 app.use(mastra);
@@ -147,7 +154,7 @@ export const getStatus = query({
       {
         workflowName: "weatherToOutfitWorkflow",
         runId: args.runId,
-      }
+      },
     );
     if (!doc) {
       return null;
@@ -164,11 +171,10 @@ See more example usage in [example.ts](./example/convex/example.ts).
 ## Limitations
 
 1. For local development, you need to run `mastra dev` in Node 20, but
-   `convex dev` in Node 18.
-   If you see issues about syscalls at import time, try using the cloud dev
-   environment instead.
-1. Currently you can only interact with Mastra classes from Node actions, so
-   you can't start them from a mutation without doing it indirectly via the
+   `convex dev` in Node 18. If you see issues about syscalls at import time, try
+   using the cloud dev environment instead.
+1. Currently you can only interact with Mastra classes from Node actions, so you
+   can't start them from a mutation without doing it indirectly via the
    Scheduler or Workpool by enqueuing the node action to run.
 1. To reactively query for the status of a workflow, you need to call the
    component API directly. There's an example above and in
@@ -191,11 +197,11 @@ See more example usage in [example.ts](./example/convex/example.ts).
 1. Better logging and tracing.
 1. Provide a Mutation Step to avoid the v8 action and is executed exactly once.
 1. Workflows currently only run in Node Actions. You can create/start/resume
-   them from anywhere, but each step will be executed in the node runtime.
-   This is a bit slower and more expensive than running in the default runtime.
-1. Using the `ConvexStorage` from Mastra doesn't share state with workflows
-   made via the Component. They're currently stored in separate tables with
-   different schemas.
+   them from anywhere, but each step will be executed in the node runtime. This
+   is a bit slower and more expensive than running in the default runtime.
+1. Using the `ConvexStorage` from Mastra doesn't share state with workflows made
+   via the Component. They're currently stored in separate tables with different
+   schemas.
 
 ## Troubleshooting
 
@@ -234,9 +240,9 @@ If you see an error like this:
 ```
 
 You're likely importing some node package through a dependency that isn't
-supported. One workaround is to add it as an explicit dependency, then add it
-to the `externalPackages` in a `convex.json` file in the root of your project,
-then export something from it, similar to `@libsql/client` above
+supported. One workaround is to add it as an explicit dependency, then add it to
+the `externalPackages` in a `convex.json` file in the root of your project, then
+export something from it, similar to `@libsql/client` above
 
 You can also try deleting your `node_modules` and `package-lock.json` and
 re-installing using node 18.
@@ -256,9 +262,9 @@ re-installing using node 18.
 ```
 
 This is because you're using a Node API in a file that doesn't have
-`"use node";` as the first line in the file
-Or you're importing a file in your convex/ directory that imports from a
-node dependency that doesn't have the `"use node"` directive.
+`"use node";` as the first line in the file Or you're importing a file in your
+convex/ directory that imports from a node dependency that doesn't have the
+`"use node"` directive.
 
 To fix this, add the `"use node"` directive to the file. Note: these files can
 only have actions, since mutations and queries only run in the default runtime.
