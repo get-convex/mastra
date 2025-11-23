@@ -331,6 +331,113 @@ export class ConvexStorage extends MastraStorage {
       .slice(pageNum * numItems, (pageNum + 1) * numItems)
       .map((trace) => mapSerializedToMastra(TABLE_TRACES, trace));
   }
+
+  // Schema management - not supported in Convex
+  async dropTable({ tableName }: { tableName: TABLE_NAMES }): Promise<void> {
+    throw new Error(
+      `dropTable is not supported in ConvexStorage for table: ${tableName}`,
+    );
+  }
+
+  async alterTable(args: {
+    tableName: TABLE_NAMES;
+    schema: Record<string, StorageColumn>;
+    ifNotExists: string[];
+  }): Promise<void> {
+    throw new Error(
+      `alterTable is not supported in ConvexStorage for table: ${args.tableName}`,
+    );
+  }
+
+  // Message operations
+  async getMessagesById({
+    messageIds,
+    format,
+  }: {
+    messageIds: string[];
+    format?: "v1" | "v2";
+  }): Promise<any[]> {
+    // TODO: Implement getMessagesByIds in component
+    throw new Error("getMessagesById not yet implemented in ConvexStorage");
+  }
+
+  async updateMessages(args: {
+    messages: Array<{ id: string; [key: string]: any }>;
+  }): Promise<any[]> {
+    // TODO: Implement updateMessages in component
+    throw new Error("updateMessages not yet implemented in ConvexStorage");
+  }
+
+  // Workflow operations
+  async updateWorkflowResults(args: {
+    workflowName: string;
+    runId: string;
+    stepId: string;
+    result: any;
+    runtimeContext: Record<string, any>;
+  }): Promise<Record<string, any>> {
+    throw new Error("updateWorkflowResults not yet implemented");
+  }
+
+  async updateWorkflowState(args: {
+    workflowName: string;
+    runId: string;
+    opts: {
+      status: string;
+      result?: any;
+      error?: string;
+      suspendedPaths?: Record<string, number[]>;
+      waitingPaths?: Record<string, number[]>;
+    };
+  }): Promise<any> {
+    throw new Error("updateWorkflowState not yet implemented");
+  }
+
+  async getWorkflowRunById(args: {
+    runId: string;
+    workflowName?: string;
+  }): Promise<any> {
+    throw new Error("getWorkflowRunById not yet implemented");
+  }
+
+  // Scoring operations
+  async getScoreById({ id }: { id: string }): Promise<any> {
+    throw new Error("getScoreById not yet implemented");
+  }
+
+  async saveScore(score: any): Promise<{ score: any }> {
+    throw new Error("saveScore not yet implemented");
+  }
+
+  async getScoresByScorerId(args: any): Promise<any> {
+    throw new Error("getScoresByScorerId not yet implemented");
+  }
+
+  async getScoresByRunId(args: any): Promise<any> {
+    throw new Error("getScoresByRunId not yet implemented");
+  }
+
+  async getScoresByEntityId(args: any): Promise<any> {
+    throw new Error("getScoresByEntityId not yet implemented");
+  }
+
+  // Eval operations
+  async getEvals(options: any): Promise<any> {
+    throw new Error("getEvals not yet implemented");
+  }
+
+  // Pagination operations
+  async getThreadsByResourceIdPaginated(args: any): Promise<any> {
+    throw new Error("getThreadsByResourceIdPaginated not yet implemented");
+  }
+
+  async getMessagesPaginated(args: any): Promise<any> {
+    throw new Error("getMessagesPaginated not yet implemented");
+  }
+
+  async getTracesPaginated(args: any): Promise<any> {
+    throw new Error("getTracesPaginated not yet implemented");
+  }
 }
 
 type Ctx<T extends "action" | "mutation" | "query"> = T extends "action"

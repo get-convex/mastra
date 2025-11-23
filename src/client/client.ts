@@ -33,9 +33,8 @@ export class ConvexVector extends MastraVector {
     this.api = options?.api ?? (anyApi.mastra.api as unknown as VectorApi);
   }
 
-  async query(...args: Parameters<MastraVector["query"]>) {
-    const { indexName, queryVector, topK, filter, includeVector } =
-      this.normalizeArgs("query", args);
+  async query(params: Parameters<MastraVector["query"]>[0]) {
+    const { indexName, queryVector, topK, filter, includeVector } = params;
     return await this.client.action(this.api.vectorAction, {
       op: "search",
       args: {
@@ -48,11 +47,8 @@ export class ConvexVector extends MastraVector {
     });
   }
 
-  async upsert(...args: Parameters<MastraVector["upsert"]>): Promise<string[]> {
-    const { indexName, vectors, metadata, ids } = this.normalizeArgs(
-      "upsert",
-      args,
-    );
+  async upsert(params: Parameters<MastraVector["upsert"]>[0]): Promise<string[]> {
+    const { indexName, vectors, metadata, ids } = params;
     return await this.client.action(this.api.vectorAction, {
       op: "upsert",
       args: {
@@ -64,8 +60,8 @@ export class ConvexVector extends MastraVector {
     });
   }
 
-  async createIndex(...args: Parameters<MastraVector["createIndex"]>) {
-    const { indexName, dimension } = this.normalizeArgs("createIndex", args);
+  async createIndex(params: Parameters<MastraVector["createIndex"]>[0]) {
+    const { indexName, dimension } = params;
     if (dimension !== 1536) {
       throw new Error("Only 1536 dimensions supported");
     }
@@ -85,17 +81,42 @@ export class ConvexVector extends MastraVector {
     });
   }
 
-  async describeIndex(indexName: string) {
+  async describeIndex(params: Parameters<MastraVector["describeIndex"]>[0]) {
+    const { indexName } = params;
     return await this.client.query(this.api.vectorQuery, {
       op: "describeIndex",
       args: { indexName },
     });
   }
 
-  async deleteIndex(indexName: SupportedTableName) {
+  async deleteIndex(params: Parameters<MastraVector["deleteIndex"]>[0]) {
+    const { indexName } = params;
     await this.client.action(this.api.vectorAction, {
       op: "deleteIndex",
-      args: { indexName },
+      args: { indexName: indexName as SupportedTableName },
+    });
+  }
+
+  async updateVector(params: Parameters<MastraVector["updateVector"]>[0]): Promise<void> {
+    const { indexName, id, update } = params;
+    await this.client.action(this.api.vectorAction, {
+      op: "updateVector",
+      args: {
+        indexName: indexName as SupportedTableName,
+        id,
+        ...update,
+      },
+    });
+  }
+
+  async deleteVector(params: Parameters<MastraVector["deleteVector"]>[0]): Promise<void> {
+    const { indexName, id } = params;
+    await this.client.action(this.api.vectorAction, {
+      op: "deleteVector",
+      args: {
+        indexName: indexName as SupportedTableName,
+        id,
+      },
     });
   }
 }

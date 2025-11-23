@@ -135,6 +135,58 @@ export const upsert = mutation({
   },
 });
 
+export const updateVector = mutation({
+  args: {
+    indexName: vSupportedTableName,
+    id: v.string(),
+    vector: v.optional(v.array(v.number())),
+    metadata: v.optional(v.record(v.string(), v.any())),
+  },
+  returns: v.null(),
+  handler: async (ctx, { indexName, id, vector, metadata }) => {
+    const convexId = ctx.db.normalizeId(indexName, id);
+    const existing = convexId
+      ? await ctx.db.get(convexId)
+      : await ctx.db
+          .query(indexName)
+          .withIndex("id", (q) => q.eq("id", id))
+          .first();
+
+    if (!existing) {
+      throw new Error(`Vector with id ${id} not found in index ${indexName}`);
+    }
+
+    const updateData: any = {};
+    if (vector !== undefined) updateData.vector = vector;
+    if (metadata !== undefined) updateData.metadata = metadata;
+
+    await ctx.db.patch(existing._id, updateData);
+  },
+});
+
+export const deleteVector = mutation({
+  args: {
+    indexName: vSupportedTableName,
+    id: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { indexName, id }) => {
+    const convexId = ctx.db.normalizeId(indexName, id);
+    const existing = convexId
+      ? await ctx.db.get(convexId)
+      : await ctx.db
+          .query(indexName)
+          .withIndex("id", (q) => q.eq("id", id))
+          .first();
+
+    if (!existing) {
+      throw new Error(`Vector with id ${id} not found in index ${indexName}`);
+    }
+
+    await ctx.db.delete(existing._id);
+  },
+});
+
 const vSearchResult = v.object({
   id: v.string(),
   score: v.number(),

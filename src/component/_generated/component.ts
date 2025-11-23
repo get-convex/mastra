@@ -458,6 +458,25 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           null,
           Name
         >;
+        deleteVector: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            id: string;
+            indexName:
+              | "embeddings_128"
+              | "embeddings_256"
+              | "embeddings_512"
+              | "embeddings_768"
+              | "embeddings_1024"
+              | "embeddings_1536"
+              | "embeddings_2048"
+              | "embeddings_3072"
+              | "embeddings_4096";
+          },
+          null,
+          Name
+        >;
         describeIndex: FunctionReference<
           "query",
           "internal",
@@ -492,6 +511,27 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             score: number;
             vector?: Array<number>;
           }>,
+          Name
+        >;
+        updateVector: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            id: string;
+            indexName:
+              | "embeddings_128"
+              | "embeddings_256"
+              | "embeddings_512"
+              | "embeddings_768"
+              | "embeddings_1024"
+              | "embeddings_1536"
+              | "embeddings_2048"
+              | "embeddings_3072"
+              | "embeddings_4096";
+            metadata?: Record<string, any>;
+            vector?: Array<number>;
+          },
+          null,
           Name
         >;
         upsert: FunctionReference<

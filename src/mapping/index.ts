@@ -18,12 +18,18 @@ export const TABLE_EVALS = "mastra_evals";
 export const TABLE_MESSAGES = "mastra_messages";
 export const TABLE_THREADS = "mastra_threads";
 export const TABLE_TRACES = "mastra_traces";
+export const TABLE_RESOURCES = "mastra_resources";
+export const TABLE_SCORERS = "mastra_scorers";
+export const TABLE_AI_SPANS = "mastra_ai_spans";
 export type TABLE_NAMES =
   | typeof TABLE_WORKFLOW_SNAPSHOT
   | typeof TABLE_EVALS
   | typeof TABLE_MESSAGES
   | typeof TABLE_THREADS
-  | typeof TABLE_TRACES;
+  | typeof TABLE_TRACES
+  | typeof TABLE_RESOURCES
+  | typeof TABLE_SCORERS
+  | typeof TABLE_AI_SPANS;
 
 // Define the runtime constants first
 export const mastraToConvexTableNames = {
@@ -32,6 +38,9 @@ export const mastraToConvexTableNames = {
   [TABLE_MESSAGES]: "messages",
   [TABLE_THREADS]: "threads",
   [TABLE_TRACES]: "traces",
+  [TABLE_RESOURCES]: "resources",
+  [TABLE_SCORERS]: "scorers",
+  [TABLE_AI_SPANS]: "aiSpans",
 } as const;
 
 export const convexToMastraTableNames = {
@@ -40,6 +49,9 @@ export const convexToMastraTableNames = {
   messages: TABLE_MESSAGES,
   threads: TABLE_THREADS,
   traces: TABLE_TRACES,
+  resources: TABLE_RESOURCES,
+  scorers: TABLE_SCORERS,
+  aiSpans: TABLE_AI_SPANS,
 } as const;
 
 // Then derive the types from the constants
@@ -57,8 +69,10 @@ export type MastraRowTypeMap = {
   [TABLE_EVALS]: EvalRow;
   [TABLE_MESSAGES]: MessageType;
   [TABLE_THREADS]: StorageThreadType;
-
-  [TABLE_TRACES]: any; // Replace with proper type when available
+  [TABLE_TRACES]: any; // TODO: Add proper trace type
+  [TABLE_RESOURCES]: any; // TODO: Add proper resource type
+  [TABLE_SCORERS]: any; // TODO: Add proper scorer type
+  [TABLE_AI_SPANS]: any; // TODO: Add proper AI span type
 };
 
 export type SerializedTimestamp = number;
@@ -150,6 +164,9 @@ export type SerializedTypeMap = {
   [TABLE_MESSAGES]: SerializedMessage;
   [TABLE_THREADS]: SerializedThread;
   [TABLE_TRACES]: SerializedTrace;
+  [TABLE_RESOURCES]: any; // TODO: Add proper resource serialization type
+  [TABLE_SCORERS]: any; // TODO: Add proper scorer serialization type
+  [TABLE_AI_SPANS]: any; // TODO: Add proper AI span serialization type
 };
 
 function serializeDateOrNow(date: string | Date | number): number {
@@ -207,8 +224,8 @@ export function mapMastraToSerialized<T extends TABLE_NAMES>(
       const row = mastraRow as MastraRowTypeMap[typeof TABLE_MESSAGES];
       const serialized: SerializedMessage = {
         id: row.id,
-        threadId: row.threadId,
-        resourceId: row.resourceId,
+        threadId: row.threadId ?? "",
+        resourceId: row.resourceId ?? "",
         content: serializeContent(row.content),
         role: row.role,
         type: row.type,
@@ -338,8 +355,8 @@ export function mapSerializedToMastra<T extends TABLE_NAMES>(
         workflow_name: serialized.workflowName,
         run_id: serialized.runId,
         snapshot: JSON.parse(serialized.snapshot),
-        created_at: new Date(serialized.createdAt),
-        updated_at: new Date(serialized.updatedAt),
+        createdAt: new Date(serialized.createdAt),
+        updatedAt: new Date(serialized.updatedAt),
       };
       return workflow;
     }

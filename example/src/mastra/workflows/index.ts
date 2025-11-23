@@ -1,4 +1,4 @@
-import { Agent, createStep, Mastra, Workflow } from "@mastra/core";
+import { createStep, createWorkflow } from "@mastra/core/workflows";
 import { z } from "zod";
 import { outfitAgent, weatherAgent } from "../agents";
 
@@ -87,13 +87,13 @@ export const refineOutfit = createStep({
   }),
 });
 
-export const weatherToOutfitWorkflow = new Workflow({
-  name: "weatherToOutfit",
-  triggerSchema: z.object({
+export const weatherToOutfitWorkflow = createWorkflow({
+  id: "weatherToOutfit",
+  inputSchema: z.object({
     location: z.string(),
   }),
 })
-  .step(getWeather, {
+  .then(getWeather, {
     variables: {
       location: {
         step: "trigger",
@@ -213,16 +213,16 @@ const Fail = createStep({
   },
 });
 
-export const whenTest = new Workflow({
-  name: "whenTest",
-  triggerSchema: z.object({
+export const whenTest = createWorkflow({
+  id: "whenTest",
+  inputSchema: z.object({
     text: z.string(),
     nested: z.object({
       text: z.string(),
     }),
   }),
 })
-  .step(A)
+  .then(A)
   .then(Counter)
   // .if(async ({ context }) => context.getStepResult("A") === "A")
   // .then(B)
@@ -230,7 +230,7 @@ export const whenTest = new Workflow({
   // .after([A, Fail])
   //   .step(C)
   .after(A)
-  .step(B, {
+  .then(B, {
     when: {
       "A.status": "success",
       // ref: {

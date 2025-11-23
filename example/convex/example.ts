@@ -1,7 +1,9 @@
 "use node";
 import { action, internalAction } from "./_generated/server";
 import { components } from "./_generated/api";
-import { Agent, createStep, Mastra, Workflow } from "@mastra/core";
+import { Agent } from "@mastra/core/agent";
+import { createStep, createWorkflow } from "@mastra/core/workflows";
+import { Mastra } from "@mastra/core/mastra";
 // import { Memory } from "@mastra/memory";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
@@ -133,16 +135,16 @@ const Fail = createStep({
     throw new Error("Fail");
   },
 });
-const workflow = new Workflow({
-  name: "workflow",
-  triggerSchema: z.object({
+const workflow = createWorkflow({
+  id: "workflow",
+  inputSchema: z.object({
     text: z.string(),
     nested: z.object({
       text: z.string(),
     }),
   }),
 })
-  .step(A)
+  .then(A)
   .then(Counter, {
     when: {
       ref: {
@@ -160,7 +162,7 @@ const workflow = new Workflow({
   // .after([A, Fail])
   //   .step(C)
   // .after(A)
-  .step(B)
+  .then(B)
   .then(C, {
     when: {
       ref: {
@@ -173,7 +175,7 @@ const workflow = new Workflow({
     },
   })
   .after([A, C])
-  .step(D, {
+  .then(D, {
     when: {
       "B.status": "success",
     },
@@ -181,12 +183,12 @@ const workflow = new Workflow({
   .then(Counter)
   .after(B)
   // skip
-  .step(Fail, {
+  .then(Fail, {
     when: { "RetryOnce.status": "retry" },
   })
-  .step(RetryOnce)
+  .then(RetryOnce)
   // .until(async ({ context }) => context.getStepResult("Counter").count >= 5, Counter)
-  .step(E, {
+  .then(E, {
     when: {
       ref: {
         step: { id: "Counter" },
@@ -195,7 +197,7 @@ const workflow = new Workflow({
       query: { $lt: 5 },
     },
   })
-  .step(RetryOnce, {
+  .then(RetryOnce, {
     when: {
       and: [
         {
@@ -243,7 +245,7 @@ const workflow = new Workflow({
   //   when: ({ context }) => context.inputData.text === "D",
   // })
 
-  .step(summarize, {
+  .then(summarize, {
     variables: {
       text: { step: "trigger", path: "nested.text" },
     },

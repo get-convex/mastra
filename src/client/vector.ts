@@ -59,9 +59,8 @@ export class ConvexVector extends MastraVector {
     return this.ctx as Ctx<T>;
   }
 
-  async query(...args: Parameters<MastraVector["query"]>) {
-    const { indexName, queryVector, topK, filter, includeVector } =
-      this.normalizeArgs("query", args);
+  async query(params: Parameters<MastraVector["query"]>[0]) {
+    const { indexName, queryVector, topK, filter, includeVector } = params;
     const ctx = this.getApi("action");
     return await ctx.runAction(this.api.vector.search, {
       indexName,
@@ -72,11 +71,8 @@ export class ConvexVector extends MastraVector {
     });
   }
 
-  async upsert(...args: Parameters<MastraVector["upsert"]>): Promise<string[]> {
-    const { indexName, vectors, metadata, ids } = this.normalizeArgs(
-      "upsert",
-      args,
-    );
+  async upsert(params: Parameters<MastraVector["upsert"]>[0]): Promise<string[]> {
+    const { indexName, vectors, metadata, ids } = params;
     const ctx = this.getApi("mutation");
     return await ctx.runMutation(this.api.vector.upsert, {
       indexName,
@@ -86,8 +82,8 @@ export class ConvexVector extends MastraVector {
     });
   }
 
-  async createIndex(...args: Parameters<MastraVector["createIndex"]>) {
-    const { indexName, dimension } = this.normalizeArgs("createIndex", args);
+  async createIndex(params: Parameters<MastraVector["createIndex"]>[0]) {
+    const { indexName, dimension } = params;
     if (dimension !== 1536) {
       throw new Error("Only 1536 dimensions supported");
     }
@@ -103,14 +99,35 @@ export class ConvexVector extends MastraVector {
     return await ctx.runQuery(this.api.vector.listIndexes, {});
   }
 
-  async describeIndex(indexName: string) {
+  async describeIndex(params: Parameters<MastraVector["describeIndex"]>[0]) {
+    const { indexName } = params;
     const ctx = this.getApi("query");
     return await ctx.runQuery(this.api.vector.describeIndex, { indexName });
   }
 
-  async deleteIndex(indexName: SupportedTableName) {
+  async deleteIndex(params: Parameters<MastraVector["deleteIndex"]>[0]) {
+    const { indexName } = params;
     const ctx = this.getApi("action");
-    await ctx.runAction(this.api.vector.deleteIndex, { indexName });
+    await ctx.runAction(this.api.vector.deleteIndex, { indexName: indexName as SupportedTableName });
+  }
+
+  async updateVector(params: Parameters<MastraVector["updateVector"]>[0]): Promise<void> {
+    const { indexName, id, update } = params;
+    const ctx = this.getApi("mutation");
+    await ctx.runMutation(this.api.vector.updateVector, {
+      indexName: indexName as SupportedTableName,
+      id,
+      ...update,
+    });
+  }
+
+  async deleteVector(params: Parameters<MastraVector["deleteVector"]>[0]): Promise<void> {
+    const { indexName, id } = params;
+    const ctx = this.getApi("mutation");
+    await ctx.runMutation(this.api.vector.deleteVector, {
+      indexName: indexName as SupportedTableName,
+      id,
+    });
   }
 }
 

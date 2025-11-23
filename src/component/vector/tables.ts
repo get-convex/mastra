@@ -1,16 +1,13 @@
 import { literals } from "convex-helpers/validators";
-import {
-  defineTable,
-  type GenericTableSearchIndexes,
-  type TableDefinition,
-} from "convex/server";
-import {
-  type GenericId,
-  type ObjectType,
-  v,
-  type VId,
-  type VObject,
-  type VUnion,
+import { defineTable } from "convex/server";
+import type { GenericTableSearchIndexes, TableDefinition } from "convex/server";
+import { v } from "convex/values";
+import type {
+  GenericId,
+  ObjectType,
+  VId,
+  VObject,
+  VUnion,
 } from "convex/values";
 
 const embeddings = {
