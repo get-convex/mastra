@@ -9,11 +9,7 @@ import { weatherAgent, outfitAgent } from "../src/mastra/agents";
 import { weatherToOutfitWorkflow } from "../src/mastra/workflows";
 import { ConvexStorage, ConvexVector } from "@convex-dev/mastra";
 
-// TODO: is this still necessary?
-import crypto from "crypto";
 import { v } from "convex/values";
-// ts-ignore
-globalThis.crypto = crypto as any;
 
 const storage = new ConvexStorage(components.mastra);
 const vector = new ConvexVector(components.mastra);
@@ -38,7 +34,7 @@ const summarize = createStep({
     const result = await agent.generate(
       context.inputData.text + guidance
         ? `\n\nHere is some guidance: ${guidance}`
-        : ""
+        : "",
     );
     if (!guidance) {
       await suspend({
@@ -272,7 +268,7 @@ export const startWorkflow = internalAction({
   args: {
     runId: v.optional(v.string()),
     name: v.optional(
-      v.union(v.literal("workflow"), v.literal("weatherToOutfitWorkflow"))
+      v.union(v.literal("workflow"), v.literal("weatherToOutfitWorkflow")),
     ),
     initialData: v.optional(v.any()),
   },
