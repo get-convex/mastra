@@ -2,7 +2,7 @@ import type {
   EvalRow,
   MessageType,
   StorageThreadType,
-  StorageWorkflowRun,
+  WorkflowRow,
 } from "@mastra/core";
 import type {
   AssistantContent,
@@ -53,7 +53,7 @@ export type MastraTableName<T extends keyof ConvexToMastraTableMap> =
 
 // Type that maps Mastra table names to their row types
 export type MastraRowTypeMap = {
-  [TABLE_WORKFLOW_SNAPSHOT]: StorageWorkflowRun;
+  [TABLE_WORKFLOW_SNAPSHOT]: WorkflowRow;
   [TABLE_EVALS]: EvalRow;
   [TABLE_MESSAGES]: MessageType;
   [TABLE_THREADS]: StorageThreadType;
@@ -65,8 +65,8 @@ export type SerializedTimestamp = number;
 const vSerializedTimestamp = v.number();
 
 export type SerializedSnapshot = Omit<
-  StorageWorkflowRun,
-  "createdAt" | "updatedAt" | "snapshot" | "workflow_name" | "run_id"
+  WorkflowRow,
+  "created_at" | "updated_at" | "snapshot" | "workflow_name" | "run_id"
 > & {
   createdAt: SerializedTimestamp;
   updatedAt: SerializedTimestamp;
@@ -182,8 +182,8 @@ export function mapMastraToSerialized<T extends TABLE_NAMES>(
         workflowName: row.workflow_name,
         runId: row.run_id,
         snapshot: JSON.stringify(row.snapshot),
-        updatedAt: serializeDateOrNow(row.updatedAt),
-        createdAt: serializeDateOrNow(row.createdAt),
+        createdAt: serializeDateOrNow(row.created_at),
+        updatedAt: serializeDateOrNow(row.updated_at),
       };
       return serialized as SerializedTypeMap[T];
     }
@@ -334,7 +334,7 @@ export function mapSerializedToMastra<T extends TABLE_NAMES>(
     case TABLE_WORKFLOW_SNAPSHOT: {
       const serialized =
         row as SerializedTypeMap[typeof TABLE_WORKFLOW_SNAPSHOT];
-      const workflow: StorageWorkflowRun = {
+      const workflow: WorkflowRow = {
         workflow_name: serialized.workflowName,
         run_id: serialized.runId,
         snapshot: JSON.parse(serialized.snapshot),

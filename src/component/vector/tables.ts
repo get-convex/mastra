@@ -1,10 +1,17 @@
 import { literals } from "convex-helpers/validators";
 import {
   defineTable,
-  GenericTableSearchIndexes,
-  TableDefinition,
+  type GenericTableSearchIndexes,
+  type TableDefinition,
 } from "convex/server";
-import { GenericId, ObjectType, v, VId, VObject, VUnion } from "convex/values";
+import {
+  type GenericId,
+  type ObjectType,
+  v,
+  type VId,
+  type VObject,
+  type VUnion,
+} from "convex/values";
 
 const embeddings = {
   id: v.optional(v.string()),
@@ -28,11 +35,11 @@ export const SUPPORTED_DIMENSIONS = [
 ] as const;
 export type SupportedDimension = (typeof SUPPORTED_DIMENSIONS)[number];
 export const SUPPORTED_TABLE_NAMES = SUPPORTED_DIMENSIONS.map(
-  (d) => `embeddings_${d}`
+  (d) => `embeddings_${d}`,
 ) as `embeddings_${(typeof SUPPORTED_DIMENSIONS)[number]}`[];
 export type SupportedTableName = (typeof SUPPORTED_TABLE_NAMES)[number];
 export const SUPPORTED_TABLE_ID = v.union(
-  ...SUPPORTED_TABLE_NAMES.map((name) => v.id(name))
+  ...SUPPORTED_TABLE_NAMES.map((name) => v.id(name)),
 ) as VUnion<
   GenericId<(typeof SUPPORTED_TABLE_NAMES)[number]>,
   VId<(typeof SUPPORTED_TABLE_NAMES)[number]>[]
@@ -66,7 +73,7 @@ const tables: {
   SUPPORTED_DIMENSIONS.map((dimensions) => [
     `embeddings_${dimensions}`,
     table(dimensions),
-  ])
+  ]),
 ) as Record<
   `embeddings_${(typeof SUPPORTED_DIMENSIONS)[number]}`,
   Table<(typeof SUPPORTED_DIMENSIONS)[number]>
