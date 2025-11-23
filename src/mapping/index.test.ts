@@ -105,6 +105,7 @@ test("message mapping", () => {
   const mastraRow = {
     id: "msg123",
     threadId: "thread123",
+    resourceId: "resource123",
     content: "test message",
     role: "user" as const,
     type: "text" as const,
