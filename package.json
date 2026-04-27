@@ -66,7 +66,7 @@
   },
   "peerDependencies": {
     "@mastra/core": "^0.8.0",
-    "ai": "^4.2.0",
+    "ai": "^4.2.0 || ^6.0.0",
     "convex": "^1.24.8",
     "convex-helpers": "^0.1.100"
   },
@@ -82,7 +82,7 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
-    "ai": "4.3.19",
+    "ai": "6.0.168",
     "chokidar-cli": "3.0.0",
     "convex": "1.35.1",
     "convex-test": "^0.0.38",
