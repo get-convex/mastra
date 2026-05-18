@@ -71,7 +71,7 @@
     "convex-helpers": "^0.1.100"
   },
   "devDependencies": {
-    "@ai-sdk/openai": "^1.3.24",
+    "@ai-sdk/openai": "^3.0.0",
     "@convex-dev/eslint-plugin": "^2.0.0",
     "@edge-runtime/vm": "5.0.0",
     "@eslint/eslintrc": "^3.3.1",
