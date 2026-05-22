@@ -98,14 +98,14 @@ export const updateThread = mutation({
     }
     if (args.title) {
       console.debug(`Updating title for thread ${args.threadId}`);
-      await ctx.db.patch(thread._id, {
+      await ctx.db.patch("threads", thread._id, {
         title: args.title,
         updatedAt: Date.now(),
       });
     }
     if (args.metadata) {
       console.debug(`Updating metadata for thread ${args.threadId}`);
-      await ctx.db.patch(thread._id, {
+      await ctx.db.patch("threads", thread._id, {
         metadata: args.metadata,
         updatedAt: Date.now(),
       });
@@ -127,7 +127,7 @@ export const deleteThread = mutation({
     if (!thread) {
       throw new Error(`Thread ${args.threadId} not found`);
     }
-    await ctx.db.delete(thread._id);
+    await ctx.db.delete("threads", thread._id);
   },
   returns: v.null(),
 });
