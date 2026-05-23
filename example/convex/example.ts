@@ -283,6 +283,7 @@ export const startWorkflow = internalAction({
 });
 
 export const t = action({
+  args: {},
   async handler(ctx) {
     // console.debug({
     //   stepGraph: workflow.stepGraph,

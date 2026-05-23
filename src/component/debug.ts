@@ -21,7 +21,7 @@ export const debugOverrideLogLevel = internalMutation({
   handler: async (ctx, args) => {
     const frozen = await ctx.db.query("config").first();
     if (frozen) {
-      await ctx.db.patch(frozen._id, {
+      await ctx.db.patch("config", frozen._id, {
         config: {
           ...frozen.config,
           logLevel: args.logLevel,
