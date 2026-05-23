@@ -1,4 +1,4 @@
-import { Agent, createStep, Mastra, Workflow } from "@mastra/core";
+import { createStep, Workflow } from "@mastra/core";
 import { z } from "zod";
 import { outfitAgent, weatherAgent } from "../agents";
 
@@ -11,9 +11,9 @@ export const getWeather = createStep({
   outputSchema: z.object({
     weather: z.string(),
   }),
-  execute: async ({ context, suspend }) => {
+  execute: async ({ context }) => {
     const weather = await weatherAgent.generate(
-      `What's the weather in ${context.inputData.location}?`
+      `What's the weather in ${context.inputData.location}?`,
     );
     return { weather: weather.text };
   },
@@ -29,7 +29,7 @@ export const getOutfit = createStep({
   outputSchema: z.object({
     outfit: z.string(),
   }),
-  execute: async ({ context, suspend, resourceId, threadId, runId }) => {
+  execute: async ({ context }) => {
     const outfit = await outfitAgent.generate([
       {
         role: "user",
@@ -47,7 +47,7 @@ export const refineOutfit = createStep({
     outfit: z.string(),
     refinement: z.union([z.string(), z.literal(null)]).optional(),
   }),
-  async execute({ context, suspend, resourceId, threadId, runId }) {
+  async execute({ context, suspend }) {
     const previous = context.getStepResult("refineOutfit");
     if (!previous) {
       console.log("suspending", context.inputData.outfit);
@@ -127,35 +127,35 @@ export const weatherToOutfitWorkflow = new Workflow({
   });
 const A = createStep({
   id: "A",
-  execute: async ({ context, suspend }) => {
+  execute: async () => {
     console.info("A");
     return "A";
   },
 });
 const B = createStep({
   id: "B",
-  execute: async ({ context }) => {
+  execute: async () => {
     console.info("B");
     return "B";
   },
 });
-const C = createStep({
+const _C = createStep({
   id: "C",
-  execute: async ({ context }) => {
+  execute: async () => {
     console.info("C");
     return "C";
   },
 });
-const D = createStep({
+const _D = createStep({
   id: "D",
-  execute: async ({ context }) => {
+  execute: async () => {
     console.info("D");
     return "D";
   },
 });
-const E = createStep({
+const _E = createStep({
   id: "E",
-  execute: async ({ context }) => {
+  execute: async () => {
     console.info("E");
     return "E";
   },
@@ -170,7 +170,7 @@ const Counter = createStep({
     count: z.number(),
   }),
 });
-const SuspendsUntilHumanInput = createStep({
+const _SuspendsUntilHumanInput = createStep({
   id: "SuspendsUntilHumanInput",
   inputSchema: z.object({
     human: z.string().optional(),
@@ -186,7 +186,7 @@ const SuspendsUntilHumanInput = createStep({
     return "SuspendsUntilHumanInput";
   },
 });
-const RetryOnce = createStep({
+const _RetryOnce = createStep({
   id: "RetryOnce",
   execute: async ({ context }) => {
     const previous = context.getStepResult("RetryOnce");
@@ -196,7 +196,7 @@ const RetryOnce = createStep({
     return { status: "retry" };
   },
 });
-const FailsOnSecondRun = createStep({
+const _FailsOnSecondRun = createStep({
   id: "FailsOnSecondRun",
   execute: async ({ context }) => {
     const previous = context.getStepResult("FailsOnSecondRun");
@@ -205,9 +205,9 @@ const FailsOnSecondRun = createStep({
     return (previous ?? 0) + 1;
   },
 });
-const Fail = createStep({
+const _Fail = createStep({
   id: "Fail",
-  execute: async ({ context }) => {
+  execute: async () => {
     console.info("Fail");
     throw new Error("Fail");
   },

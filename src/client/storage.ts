@@ -85,7 +85,7 @@ export class ConvexStorage extends MastraStorage {
     return this.ctx as Ctx<T>;
   }
 
-  async getWorkflowRuns(args?: {
+  async getWorkflowRuns(_args?: {
     namespace?: string;
     workflowName?: string;
     fromDate?: Date;
