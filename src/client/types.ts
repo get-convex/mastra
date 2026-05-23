@@ -45,4 +45,4 @@ type CtxWith<T extends "runQuery" | "runMutation" | "runAction"> = Pick<
 >;
 
 type QueryCtx = CtxWith<"runQuery">;
-const queryCtx = {} as QueryCtx;
+const _queryCtx = {} as QueryCtx;

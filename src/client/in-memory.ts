@@ -68,7 +68,7 @@ export class InMemoryStorage extends MastraStorage {
     if (this.primaryKeys[tableName]) {
       const primaryKey = record[this.primaryKeys[tableName]!];
       const index = this.tables[tableName].findIndex(
-        (record) => record[this.primaryKeys[tableName]!] === primaryKey
+        (record) => record[this.primaryKeys[tableName]!] === primaryKey,
       );
       if (index !== -1) {
         this.tables[tableName][index] = record;
@@ -80,7 +80,7 @@ export class InMemoryStorage extends MastraStorage {
     }
   }
 
-  async getWorkflowRuns(args?: {
+  async getWorkflowRuns(_args?: {
     namespace?: string;
     workflowName?: string;
     fromDate?: Date;
@@ -120,7 +120,7 @@ export class InMemoryStorage extends MastraStorage {
     keys: Record<string, string>;
   }): Promise<R | null> {
     return this.tables[tableName].find((record) =>
-      Object.entries(keys).every(([key, value]) => record[key] === value)
+      Object.entries(keys).every(([key, value]) => record[key] === value),
     ) as R | null;
   }
 
@@ -130,7 +130,7 @@ export class InMemoryStorage extends MastraStorage {
     threadId: string;
   }): Promise<StorageThreadType | null> {
     return this.tables[TABLE_THREADS].find(
-      (record) => record.id === threadId
+      (record) => record.id === threadId,
     ) as StorageThreadType | null;
   }
 
@@ -140,7 +140,7 @@ export class InMemoryStorage extends MastraStorage {
     resourceId: string;
   }): Promise<StorageThreadType[]> {
     return this.tables[TABLE_THREADS].filter(
-      (record) => record.resourceId === resourceId
+      (record) => record.resourceId === resourceId,
     ) as StorageThreadType[];
   }
 
@@ -163,7 +163,7 @@ export class InMemoryStorage extends MastraStorage {
     metadata: Record<string, unknown>;
   }): Promise<StorageThreadType> {
     const index = this.tables[TABLE_THREADS].findIndex(
-      (record) => record.id === id
+      (record) => record.id === id,
     );
     if (index === -1) {
       throw new Error(`Thread with id ${id} not found`);
@@ -178,7 +178,7 @@ export class InMemoryStorage extends MastraStorage {
 
   async deleteThread({ threadId }: { threadId: string }): Promise<void> {
     const index = this.tables[TABLE_THREADS].findIndex(
-      (record) => record.id === threadId
+      (record) => record.id === threadId,
     );
     if (index !== -1) {
       this.tables[TABLE_THREADS].splice(index, 1);
@@ -190,7 +190,7 @@ export class InMemoryStorage extends MastraStorage {
     selectBy,
   }: StorageGetMessagesArg): Promise<T> {
     const allMessages = this.tables[TABLE_MESSAGES].filter(
-      (record) => record.threadId === threadId
+      (record) => record.threadId === threadId,
     ) as MessageType[];
     const limit = typeof selectBy?.last === `number` ? selectBy.last : 40;
     const ranges = [
@@ -208,17 +208,17 @@ export class InMemoryStorage extends MastraStorage {
                 }
               : null;
           })
-          .flatMap((r) => (r ? [r] : []))
+          .flatMap((r) => (r ? [r] : [])),
       );
     }
     const indexes = ranges
       .flatMap((r) =>
-        Array.from({ length: r.end - r.start + 1 }, (_, i) => r.start + i)
+        Array.from({ length: r.end - r.start + 1 }, (_, i) => r.start + i),
       )
       .sort()
       .reduce(
         (acc, index) => (acc.at(-1) === index ? acc : [...acc, index]),
-        [] as number[]
+        [] as number[],
       );
     return indexes
       .map((index) => allMessages[index]!)
@@ -248,7 +248,7 @@ export class InMemoryStorage extends MastraStorage {
           message.createdAt instanceof Date
             ? message.createdAt.toISOString()
             : message.createdAt || new Date().toISOString(),
-      })
+      }),
     );
     return messages;
   }
@@ -272,7 +272,7 @@ export class InMemoryStorage extends MastraStorage {
       }
       if (attributes) {
         return Object.keys(attributes).every(
-          (key) => record.attributes[key] === attributes[key]
+          (key) => record.attributes[key] === attributes[key],
         );
       }
       return true;
@@ -282,7 +282,7 @@ export class InMemoryStorage extends MastraStorage {
 
   async getEvalsByAgentName(
     agentName: string,
-    type?: "test" | "live"
+    type?: "test" | "live",
   ): Promise<EvalRow[]> {
     return this.tables[TABLE_EVALS].filter(
       (record) =>
@@ -291,7 +291,7 @@ export class InMemoryStorage extends MastraStorage {
           ? record.testInfo && record.testInfo.testPath
           : type === "live"
             ? !record.testInfo || !record.testInfo.testPath
-            : true)
+            : true),
     ) as EvalRow[];
   }
 }
@@ -337,7 +337,7 @@ export class InMemoryVector extends MastraVector {
   ): Promise<QueryResult[]> {
     const params = this.normalizeArgs<QueryVectorParams, QueryVectorArgs>(
       "query",
-      args
+      args,
     );
     const index = this.tables[params.indexName];
     if (!index) return [];
@@ -346,8 +346,8 @@ export class InMemoryVector extends MastraVector {
         (doc) =>
           !params.filter ||
           Object.entries(params.filter).every(
-            ([field, value]) => doc.metadata[field] === value
-          )
+            ([field, value]) => doc.metadata[field] === value,
+          ),
       )
       .map((doc) => {
         const score = dotProduct(doc.vector, params.queryVector);
@@ -369,19 +369,19 @@ export class InMemoryVector extends MastraVector {
   ): Promise<string[]> {
     const params = this.normalizeArgs<UpsertVectorParams, UpsertVectorArgs>(
       "upsert",
-      args
+      args,
     );
     const table = this.tables[params.indexName];
     if (!table) throw new Error(`Index ${params.indexName} not found`);
     const normalized = params.vectors.map((vector, index) => {
       if (vector.length !== this.dimensions[params.indexName]) {
         throw new Error(
-          `Vector ${index} has wrong dimension: ${vector.length} !== ${this.dimensions[params.indexName]}`
+          `Vector ${index} has wrong dimension: ${vector.length} !== ${this.dimensions[params.indexName]}`,
         );
       }
       // Normalize the vector to unit length
       return vector.map(
-        (value) => value / Math.sqrt(dotProduct(vector, vector))
+        (value) => value / Math.sqrt(dotProduct(vector, vector)),
       );
     });
 
@@ -407,7 +407,7 @@ export class InMemoryVector extends MastraVector {
   ): Promise<void> {
     const params = this.normalizeArgs<CreateIndexParams, CreateIndexArgs>(
       "createIndex",
-      args
+      args,
     );
     this.tables[params.indexName] = [];
     this.dimensions[params.indexName] = params.dimension;

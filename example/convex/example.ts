@@ -12,7 +12,7 @@ import { ConvexStorage, ConvexVector } from "@convex-dev/mastra";
 import { v } from "convex/values";
 
 const storage = new ConvexStorage(components.mastra);
-const vector = new ConvexVector(components.mastra);
+const _vector = new ConvexVector(components.mastra);
 
 const agent = new Agent({
   // memory: new Memory({ storage, vector }),
@@ -48,35 +48,35 @@ const summarize = createStep({
 });
 const A = createStep({
   id: "A",
-  execute: async ({ context, suspend }) => {
+  execute: async () => {
     console.info("A");
     return "A";
   },
 });
 const B = createStep({
   id: "B",
-  execute: async ({ context }) => {
+  execute: async () => {
     console.info("B");
     return "B";
   },
 });
 const C = createStep({
   id: "C",
-  execute: async ({ context }) => {
+  execute: async () => {
     console.info("C");
     return "C";
   },
 });
 const D = createStep({
   id: "D",
-  execute: async ({ context }) => {
+  execute: async () => {
     console.info("D");
     return "D";
   },
 });
 const E = createStep({
   id: "E",
-  execute: async ({ context }) => {
+  execute: async () => {
     console.info("E");
     return "E";
   },
@@ -91,7 +91,7 @@ const Counter = createStep({
     count: z.number(),
   }),
 });
-const SuspendsUntilHumanInput = createStep({
+const _SuspendsUntilHumanInput = createStep({
   id: "SuspendsUntilHumanInput",
   inputSchema: z.object({
     human: z.string().optional(),
@@ -117,7 +117,7 @@ const RetryOnce = createStep({
     return { status: "retry" };
   },
 });
-const FailsOnSecondRun = createStep({
+const _FailsOnSecondRun = createStep({
   id: "FailsOnSecondRun",
   execute: async ({ context }) => {
     const previous = context.getStepResult("FailsOnSecondRun");
@@ -128,7 +128,7 @@ const FailsOnSecondRun = createStep({
 });
 const Fail = createStep({
   id: "Fail",
-  execute: async ({ context }) => {
+  execute: async () => {
     console.info("Fail");
     throw new Error("Fail");
   },
@@ -262,7 +262,7 @@ const mastra = new Mastra({
     weatherToOutfitWorkflow,
   },
 });
-type M = ReturnType<typeof mastra.getAgent<"weatherAgent">>;
+type _M = ReturnType<typeof mastra.getAgent<"weatherAgent">>;
 
 export const startWorkflow = internalAction({
   args: {
@@ -284,7 +284,7 @@ export const startWorkflow = internalAction({
 
 export const t = action({
   args: {},
-  async handler(ctx) {
+  async handler() {
     // console.debug({
     //   stepGraph: workflow.stepGraph,
     //   stepSubscriberGraph: workflow.stepSubscriberGraph,
@@ -302,7 +302,7 @@ export const t = action({
     // return;
     // const { runId, start, resume } = workflow.createRun();
     const w = mastra.getWorkflow("workflow");
-    const { runId, start, resume } = w.createRun();
+    const { runId } = w.createRun();
     return runId;
     // const afterResume = await resume({
     //   stepId: "A",
