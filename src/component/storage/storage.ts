@@ -183,7 +183,7 @@ export const clearPage = internalMutation({
     });
     await Promise.all(
       page.page.map(async (item) => {
-        await ctx.db.delete(item._id);
+        await ctx.db.delete(args.tableName as any, item._id);
       }),
     );
     console.debug(`Deleted ${page.page.length} items from ${args.tableName}`);
