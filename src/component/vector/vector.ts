@@ -105,13 +105,13 @@ export const upsert = mutation({
         if (id) {
           const convexId = ctx.db.normalizeId(index.tableName, id);
           const existing = convexId
-            ? await ctx.db.get(convexId)
+            ? await ctx.db.get(index.tableName, convexId)
             : await ctx.db
                 .query(index.tableName)
                 .withIndex("id", (q) => q.eq("id", id))
                 .first();
           if (existing) {
-            await ctx.db.patch(existing._id, {
+            await ctx.db.patch(index.tableName, existing._id, {
               vector,
               metadata: metadata?.[i],
             });
@@ -125,7 +125,7 @@ export const upsert = mutation({
           indexName,
         });
         if (!id) {
-          await ctx.db.patch(newId, {
+          await ctx.db.patch(index.tableName, newId, {
             id: newId,
           });
         }
@@ -182,6 +182,7 @@ export const search = action({
       ids: results.map((r) => r._id),
       scores: results.map((r) => r._score),
       includeVector: includeVector ?? false,
+      tableName: index.tableName,
     });
 
     const filtered = entries.filter((r) => {
@@ -210,12 +211,15 @@ export const lookupResults = internalQuery({
     ids: v.array(vSupportedId),
     scores: v.array(v.number()),
     includeVector: v.boolean(),
+    tableName: v.string(),
   },
   handler: async (ctx, args): Promise<SearchResult[]> => {
     if (args.ids.length !== args.scores.length) {
       throw new Error("ids and scores must have same length");
     }
-    const results = await Promise.all(args.ids.map((id) => ctx.db.get(id)));
+    const results = await Promise.all(
+      args.ids.map((id) => ctx.db.get(args.tableName as any, id)),
+    );
     return results.flatMap((r, i) =>
       r
         ? [
@@ -314,7 +318,9 @@ export const deletePage = internalMutation({
       cursor,
       numItems: 1000,
     });
-    await Promise.all(docs.page.map((doc) => ctx.db.delete(doc._id)));
+    await Promise.all(
+      docs.page.map((doc) => ctx.db.delete(indexName, doc._id)),
+    );
     return {
       isDone: docs.isDone,
       continueCursor: docs.continueCursor,

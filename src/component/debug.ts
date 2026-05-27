@@ -67,7 +67,9 @@ export const deletePage = internalMutation({
       cursor: args.cursor ?? null,
       numItems: 1000,
     });
-    await Promise.all(results.page.map((result) => ctx.db.delete(result._id)));
+    await Promise.all(
+      results.page.map((result) => ctx.db.delete(args.table, result._id)),
+    );
     return {
       isDone: results.isDone,
       cursor: results.continueCursor,
