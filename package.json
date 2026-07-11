@@ -79,7 +79,7 @@
     "@libsql/client": "0.15.15",
     "@mastra/core": "0.8.3",
     "@mastra/memory": "0.2.10",
-    "@types/node": "20.19.41",
+    "@types/node": "24.13.3",
     "@types/react": "19.2.6",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.1.1",
