@@ -65,7 +65,7 @@
     }
   },
   "peerDependencies": {
-    "@mastra/core": "^0.8.0",
+    "@mastra/core": "^0.8.0 || ^1.0.0",
     "ai": "^4.2.0",
     "convex": "^1.31.0",
     "convex-helpers": "^0.1.100"
@@ -77,7 +77,7 @@
     "@eslint/eslintrc": "3.3.1",
     "@eslint/js": "9.39.1",
     "@libsql/client": "0.15.15",
-    "@mastra/core": "0.8.3",
+    "@mastra/core": "1.63.2",
     "@mastra/memory": "0.2.10",
     "@types/node": "20.19.41",
     "@types/react": "19.2.6",
