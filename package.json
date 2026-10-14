@@ -86,7 +86,7 @@
     "ai": "4.3.19",
     "chokidar-cli": "3.0.0",
     "convex": "1.46.0",
-    "convex-test": "0.0.38",
+    "convex-test": "0.0.62",
     "eslint": "9.39.1",
     "eslint-plugin-react-hooks": "7.0.1",
     "eslint-plugin-react-refresh": "0.4.24",
