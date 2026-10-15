@@ -20,8 +20,6 @@ import {
   vSupportedTableName,
 } from "./tables.js";
 import { internal } from "../_generated/api.js";
-import { paginator } from "convex-helpers/server/pagination";
-import schema from "../schema.js";
 
 export const createIndex = mutation({
   args: { indexName: v.string(), dimensions: vSupportedDimension },
@@ -314,7 +312,7 @@ export const deletePage = internalMutation({
     if (!SUPPORTED_DIMENSIONS.includes(dimensions)) {
       throw new Error("Invalid index name");
     }
-    const docs = await paginator(ctx.db, schema).query(indexName).paginate({
+    const docs = await ctx.db.query(indexName).paginate({
       cursor,
       numItems: 1000,
     });
