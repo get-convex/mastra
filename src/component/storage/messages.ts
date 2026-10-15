@@ -7,13 +7,19 @@ import {
   vSerializedMessage,
   vSerializedThread,
 } from "../../mapping/index.js";
-import { paginator } from "convex-helpers/server/pagination";
-import schema from "../schema.js";
 import { makeConsole } from "../logger.js";
 
 function threadToSerializedMastra(thread: Doc<"threads">): SerializedThread {
   const { id, title, metadata, resourceId, createdAt, updatedAt } = thread;
   return { id, title, metadata, resourceId, createdAt, updatedAt };
+}
+
+function parseCreationTimeCursor(cursor: string | null | undefined) {
+  if (!cursor) return null;
+  const n = Number(cursor);
+  // Cursors from the previous paginator-based implementation (JSON arrays)
+  // aren't numbers: start from the beginning.
+  return Number.isFinite(n) ? n : null;
 }
 
 export const getThreadById = query({
@@ -49,18 +55,29 @@ export const getThreadsByResourceId = query({
   }> => {
     const console = await makeConsole(ctx);
     console.debug(`Getting threads by resource id ${args.resourceId}`);
-    const threads = await paginator(ctx.db, schema)
+    // Avoid .paginate() so this can be called repeatedly in one transaction.
+    // The cursor is the _creationTime of the last thread returned.
+    const numItems = 100;
+    const after = parseCreationTimeCursor(args.cursor);
+    const results = await ctx.db
       .query("threads")
-      .withIndex("resourceId", (q) => q.eq("resourceId", args.resourceId))
-      .paginate({
-        numItems: 100,
-        cursor: args.cursor ?? null,
-      });
-    console.debug(`Got ${threads.page.length} threads`);
+      .withIndex("resourceId", (q) => {
+        const eq = q.eq("resourceId", args.resourceId);
+        return after === null ? eq : eq.gt("_creationTime", after);
+      })
+      .take(numItems + 1);
+    const isDone = results.length <= numItems;
+    const page = results.slice(0, numItems);
+    console.debug(`Got ${page.length} threads`);
+    const last = page[page.length - 1];
     return {
-      threads: threads.page.map(threadToSerializedMastra),
-      continueCursor: threads.continueCursor,
-      isDone: threads.isDone,
+      threads: page.map(threadToSerializedMastra),
+      continueCursor: last
+        ? String(last._creationTime)
+        : after === null
+          ? ""
+          : String(after),
+      isDone,
     };
   },
   returns: v.object({

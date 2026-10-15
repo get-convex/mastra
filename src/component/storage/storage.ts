@@ -8,8 +8,8 @@ import {
   mutation,
   query,
 } from "../_generated/server.js";
-import { paginator } from "convex-helpers/server/pagination";
-import schema from "../schema.js";
+import type { Doc } from "../_generated/dataModel.js";
+import type { QueryCtx } from "../_generated/server.js";
 import { createLogger, makeConsole } from "../logger.js";
 
 interface StorageColumn {
@@ -224,6 +224,97 @@ export const getEvalsByAgentName = query({
 });
 
 const MAX_TRACES_SCANNED = 4096;
+
+type TracesCursor = { t: number; n?: string };
+
+function parseTracesCursor(cursor: string | null): TracesCursor | null {
+  if (!cursor) return null;
+  try {
+    const parsed = JSON.parse(cursor);
+    // Cursors from the previous paginator-based implementation were JSON
+    // arrays: start from the beginning.
+    if (parsed && typeof parsed === "object" && typeof parsed.t === "number") {
+      return parsed as TracesCursor;
+    }
+  } catch {
+    // fall through
+  }
+  return null;
+}
+
+/**
+ * Reads a page of traces without .paginate(), so it can be called repeatedly
+ * in one transaction. The cursor encodes the index position of the last
+ * trace returned.
+ */
+async function scanTraces(
+  ctx: QueryCtx,
+  args: {
+    scope?: string;
+    name?: string;
+    cursor: string | null;
+    numItems: number;
+  },
+): Promise<{ page: Doc<"traces">[]; isDone: boolean; continueCursor: string }> {
+  const { scope, name, numItems } = args;
+  const after = parseTracesCursor(args.cursor);
+  const limit = numItems + 1;
+  let results: Doc<"traces">[];
+  if (scope) {
+    results = await ctx.db
+      .query("traces")
+      .withIndex("scope", (q) => {
+        const eq = q.eq("scope", scope);
+        return after ? eq.gt("_creationTime", after.t) : eq;
+      })
+      .take(limit);
+  } else if (name) {
+    const end = name + "~";
+    results = [];
+    if (after && after.n !== undefined) {
+      // Finish the remaining traces with the same name as the last one seen.
+      const lastName = after.n;
+      results = await ctx.db
+        .query("traces")
+        .withIndex("name", (q) =>
+          q.eq("name", lastName).gt("_creationTime", after.t),
+        )
+        .take(limit);
+    }
+    if (results.length < limit) {
+      const lastName = after?.n;
+      results.push(
+        ...(await ctx.db
+          .query("traces")
+          .withIndex("name", (q) =>
+            (lastName !== undefined
+              ? q.gt("name", lastName)
+              : q.gte("name", name)
+            ).lt("name", end),
+          )
+          .take(limit - results.length)),
+      );
+    }
+  } else {
+    results = await ctx.db
+      .query("traces")
+      .withIndex("by_creation_time", (q) =>
+        after ? q.gt("_creationTime", after.t) : q,
+      )
+      .take(limit);
+  }
+  const isDone = results.length <= numItems;
+  const page = results.slice(0, numItems);
+  const last = page[page.length - 1];
+  const nextCursor: TracesCursor | null = last
+    ? { t: last._creationTime, ...(!scope && name ? { n: last.name } : {}) }
+    : after;
+  return {
+    page,
+    isDone,
+    continueCursor: nextCursor ? JSON.stringify(nextCursor) : "",
+  };
+}
 export const getTracesPage = query({
   args: {
     name: v.optional(v.string()),
@@ -239,18 +330,11 @@ export const getTracesPage = query({
     );
     const { scope, name, cursor, numItems, attributes } = args;
     const overfetch = (scope ? 1 : 8) * (name ? 1 : 8);
-    const traces = paginator(ctx.db, schema).query("traces");
-    const results = await (
-      scope
-        ? traces.withIndex("scope", (q) => q.eq("scope", scope))
-        : name
-          ? traces.withIndex("name", (q) =>
-              q.gte("name", name).lt("name", name + "~"),
-            )
-          : traces
-    ).paginate({
+    const results = await scanTraces(ctx, {
+      scope,
+      name,
+      cursor,
       numItems: Math.min(numItems * overfetch, MAX_TRACES_SCANNED),
-      cursor: cursor,
     });
     console.debug(`Got ${results.page.length} traces`);
     return {
